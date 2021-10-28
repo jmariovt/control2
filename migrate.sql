@@ -1,0 +1,1 @@
+CreateFailedJobsTable: create table "failed_jobs" ("id" bigint identity primary key not null, "connection" nvarchar(max) not null, "queue" nvarchar(max) not null, "payload" nvarchar(max) not null, "exception" nvarchar(max) not null, "failed_at" datetime default CURRENT_TIMESTAMP not null)

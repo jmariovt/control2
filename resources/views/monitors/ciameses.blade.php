@@ -1,0 +1,19 @@
+<table>
+    <thead>
+    <tr>
+        <th colspan="7" rowspan="2">INFORME DE MONITOREO</th>
+    </tr>
+    <tr><td>&nbsp;</td></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>COMPAÑIA</td>
+            <td>ENERO</td>
+            <td>FEBRERO</td>
+            <td>MARZO</td>
+            <td>ABRIL</td>
+            <td>MAYO</td>
+            <td>JUNIO</td>
+        </tr>
+    </tbody>
+</table>
