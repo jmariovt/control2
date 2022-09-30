@@ -31,14 +31,15 @@ class StoreMonitorRequest extends FormRequest
     {
         return [
             'alias' => 'required',
-            'FechaHoraInicio' => 'required',
-            'FechaHoraFin' => 'required',
+            //'FechaHoraInicio' => 'required',
+            //'FechaHoraFin' => 'required',
             'Estado' => 'required',
             'TipoMonitoreo' => 'required',
             'idActivo' => 'required',
             'producto' => 'required',
             'LimiteVelocidad' => 'numeric',
-            'Kilometros' => 'numeric'           
+            'Kilometros' => 'numeric',
+            'FechaHoraInicioFinCreate' => 'required'           
             
         
         ];

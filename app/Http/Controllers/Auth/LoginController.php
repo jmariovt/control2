@@ -9,6 +9,8 @@ use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+use Illuminate\Support\Facades\Log;
+
 class LoginController extends Controller
 {
     /*
@@ -56,12 +58,14 @@ class LoginController extends Controller
     public function authenticate(Request $request)
     {
 
-        $user = DB::table('Usuario')->where('Usuario','=', $request->Usuario)->where('Clave', $request->Clave)->first();
+        //$user = DB::table('Usuario')->where('Usuario','=', $request->Usuario)->where('Clave', $request->Clave)->first();
 
         /*$user = User::where('Usuario', $request->Usuario)
             ->where('Clave', $request->Clave)
             ->first();*/
 
+
+        
         if($user) 
         {
             //Auth::loginUsingId($user->id);

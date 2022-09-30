@@ -1,0 +1,55 @@
+subject-info-box-1
+{
+        float: left;
+        width: 100%;
+                
+        select
+        {
+            height: 200px;
+            padding: 0;
+
+            option 
+            {
+                padding: 4px 10px 4px 10px;
+                font-size: 0.5em;
+            }
+
+            option:hover 
+            {
+                background: #EEEEEE;
+            }
+        }
+}
+subject-info-box-2 
+{
+                float: left;
+                width: 100%;
+                
+                select 
+                {
+                    height: 200px;
+                    padding: 0;
+
+                    option 
+                    {
+                        padding: 4px 10px 4px 10px;
+                        font-size: 0.5em;
+                    }
+
+                    option:hover 
+                    {
+                        background: #EEEEEE;
+                    }
+                }
+}
+
+  subject-info-arrows 
+  {
+                float: center;
+                width: 100%;
+
+                input {
+                    width: 70%;
+                    margin-bottom: 5px;
+                }
+}

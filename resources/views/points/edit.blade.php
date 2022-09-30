@@ -46,7 +46,7 @@
     <script type="text/javascript" src="{{asset('js/daterangepicker.js')}}"></script>
     <link rel="stylesheet" type="text/css" href="{{asset('css/daterangepicker.css')}}" />
 
-    <script type="text/javascript" src="http://maps.google.com/maps/api/js?key=AIzaSyBuMimu7-55am4RMe-W3y8nhSXGqfJMGvQ"></script>
+    <script type="text/javascript" src="https://maps.google.com/maps/api/js?key=AIzaSyBuMimu7-55am4RMe-W3y8nhSXGqfJMGvQ"></script>
 
     
     

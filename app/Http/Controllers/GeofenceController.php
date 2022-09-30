@@ -75,6 +75,13 @@ class GeofenceController extends Controller
                 
             }
         }
+        try {
+            DB::insert('exec spPuntos_GeocercaGeo ?,?', array($IdGeocerca,1));
+        } catch (\Throwable $th) {
+            DB::insert('exec spPuntos_GeocercaGeo ?,?', array($IdGeocerca,0));
+        }
+        
+
 
         return redirect()->route('/alerts/message')->with('status','Geocerca creada.');
     }
@@ -143,29 +150,36 @@ class GeofenceController extends Controller
 
         
 
-        //DB::update('exec spGeocercaActualizar ?,?,?,?,?,?',array($IdGeocerca,$nombre,$IdUsuario,$tipo,$anchoLinea,$Usuario));
+        DB::update('exec spGeocercaActualizar ?,?,?,?,?,?',array($IdGeocerca,$nombre,$IdUsuario,$tipo,$anchoLinea,$Usuario));
   
         if($haCambiadoPuntos == "S")
         {
-            //DB::table('Puntos_Geocerca')->where('IdGeocerca', '=', $IdGeocerca)->delete();
+            DB::table('Puntos_Geocerca')->where('IdGeocerca', '=', $IdGeocerca)->delete();
 
             $arregloPuntos = explode(";",$arregloPuntosTemp);
             $secuencia = 1;
+            
             foreach ($arregloPuntos as $puntoArreglo) {
                 $punto = explode(",",$puntoArreglo);
                 try {
                     $latitud = $punto[0];
                     $longitud = $punto[1];
-                    //DB::insert('exec spPuntos_GeocercaIngresar ?,?,?,?',array($IdGeocerca,$secuencia,$latitud,$longitud));
+                    DB::insert('exec spPuntos_GeocercaIngresar ?,?,?,?',array($IdGeocerca,$secuencia,$latitud,$longitud));
                     $secuencia++;
                 } catch (\Throwable $th) {
                     
                 }
             }
+
+            try {
+                DB::insert('exec spPuntos_GeocercaGeo ?,?', array($IdGeocerca,1)); // Actualiza la columna GeoPoints
+            } catch (\Throwable $th) {
+                DB::insert('exec spPuntos_GeocercaGeo ?,?', array($IdGeocerca,0));
+            }
         }
         
 
-        return redirect()->route('/alerts/message')->with('status','Geocerca creada.');
+        return redirect()->route('/alerts/message')->with('status','Geocerca actualizada.');
     }
 
     /**

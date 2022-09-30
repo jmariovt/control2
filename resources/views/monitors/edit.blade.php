@@ -35,6 +35,8 @@
 									<div class="form-group">
 										<input type="text" class="form-control form-control-sm" id="alias" name="alias" placeholder="Unidad a buscar" value="{{$datos[0]->Alias}}" >
 										<div id=aliasList></div>
+										<input type="hidden" class="form-control form-control-sm" id="idUsuario" name="idUsuario" value="{{$idUsuario ?? ''}}">
+										<input type="hidden" class="form-control form-control-sm" id="idSubUsuario" name="idSubUsuario" value="{{$idSubUsuario ?? ''}}">
 									</div>
 									<div class="form-group">
 										<input type="hidden" class="form-control form-control-sm" id="idActivo" name="idActivo" placeholder="Unidad a buscar" value="{{$datos[0]->IdActivo}}" >
@@ -65,25 +67,40 @@
 										<?php
 											$datosFechaHoraInicio = date('d-m-Y H:i',strtotime($datos[0]->FechaHoraInicio));
 										?>
-										<input type='text' id='FechaHoraInicio' class="form-control form-control-sm" name="FechaHoraInicio" placeholder="Fecha Hora Inicio" autocomplete="off" value="{{$datosFechaHoraInicio}}"/>
+										<input type='hidden' id='FechaHoraInicio' class="form-control form-control-sm" name="FechaHoraInicio" placeholder="Fecha Hora Inicio" autocomplete="off" value="{{$datosFechaHoraInicio}}"/>
 									</div>
 									<div class="form-group">
 										<?php
 											$datosFechaHoraFin = date('d-m-Y H:i',strtotime($datos[0]->FechaHoraFin));
 										?>
-										<input type='text' id="FechaHoraFin" class="form-control form-control-sm" name="FechaHoraFin" placeholder="Fecha Hora Fin" autocomplete="off" value="{{$datosFechaHoraFin}}" />
+										<input type='hidden' id="FechaHoraFin" class="form-control form-control-sm" name="FechaHoraFin" placeholder="Fecha Hora Fin" autocomplete="off" value="{{$datosFechaHoraFin}}" />
+									</div>
+
+									<div class="form-group">
+										<input type='text' id='FechaHoraInicioFinEdit' class="form-control form-control-sm" name="FechaHoraInicioFinEdit" placeholder="Fecha Hora Inicio - Fin" autocomplete="off" value="{{ $datosFechaHoraInicio }} / {{ $datosFechaHoraFin }}"/>
 									</div>
 									<div class="form-group">
-										<label for="Estado">Activo</label>
-										<select class="form-control form-control-sm" id="Estado" name="Estado">
 											<?php
 												$selectedA="";
 												$selectedI="";
+												$selectEnabled="";
+												$fechaInicioReal=$datos[0]->FechaHoraInicioReal;
+
 												if($datos[0]->Estado=="A")
 													$selectedA = "selected";
 												else
+												{
+													//Está inactivo
 													$selectedI = "selected";
+													//Solo se podrá volver a activar si es que no tiene datos en campo FechaHoraInicioReal
+													if(strlen($fechaInicioReal)>0)
+														$selectEnabled="disabled";
+
+												}
 											?>
+										<label for="Estado">Activo</label>
+										<select class="form-control form-control-sm" id="Estado" name="Estado" {{$selectEnabled}}>
+											
 											<option value="A" {{$selectedA}}>SI</option>
 											<option value="I" {{$selectedI}}>NO</option>
 										</select>

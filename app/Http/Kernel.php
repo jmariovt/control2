@@ -29,7 +29,7 @@ class Kernel extends HttpKernel
      * @var array
      */
     protected $middlewareGroups = [
-        'web' => [
+        'users' => [
             \XAdmin\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
@@ -37,11 +37,18 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \XAdmin\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \XAdmin\Http\Middleware\HttpsProtocol::class,
         ],
+        'websubusers' => [
+            'users',
+         ],
 
         'api' => [
             'throttle:60,1',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ],
+        'web' => [
+           'users',
         ],
     ];
 
@@ -66,5 +73,8 @@ class Kernel extends HttpKernel
         'esMonitoreo' => \XAdmin\Http\Middleware\EsMonitoreo::class,
         'esPostventa' => \XAdmin\Http\Middleware\EsPostVenta::class,
         'esSupervisorControl' => \XAdmin\Http\Middleware\SupervisorControl::class,
+        'esSupervisorPostventa' => \XAdmin\Http\Middleware\SupervisorPostventa::class,
+        'esClienteExterno' => \XAdmin\Http\Middleware\EsClienteExterno::class,
+        'esEjecutiva' => \XAdmin\Http\Middleware\EsEjecutiva::class
     ];
 }

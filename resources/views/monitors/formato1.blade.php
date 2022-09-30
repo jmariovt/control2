@@ -58,7 +58,7 @@
         </tr>
         <tr>
             <td>CONTENEDOR N°</td>
-            <td colspan="2"></td>
+            <td colspan="2">{{$infoAdicional->NumeroContenedor}}</td>
             <td>&nbsp;</td>
             <td colspan="2">&nbsp;</td>
         </tr>
@@ -87,7 +87,7 @@
             </td>
        
             <td>
-                TEMPERATURA
+                TEMPERATURA (°C)
             </td>
        
             <td>
@@ -99,27 +99,37 @@
             </td>-->
         </tr>
         @foreach($monitors as $monitor)
-        <tr>
-            <td>{{$monitor->Fecha}}</td>
-            <td>{{$monitor->Hora}}</td>
-            <td>{{strtoupper($monitor->Lugar)}}</td>
-            <td>{{$monitor->Detenido}}</td>
-            <td>{{$monitor->Llamada}}</td>
             <?php 
-                if($monitor->Temperatura==0)
-                    $temperatura = "N/A";
-                else 
-                    $temperatura = $monitor->Temperatura."°C"; 
-                
-            ?>
-            <td>{{$temperatura}}</td>
-            <?php
                 $novedadArray = explode("\\",$monitor->Novedad);
                 $novedad = $novedadArray[0];
+                if(strpos(strtoupper($novedad),'ALERTA REPETIDA')===false)
+                {
             ?>
-            <td><br />{{strtoupper($novedad)}}</td>
-            <!--<td>{{$monitor->Kilometraje}}</td>-->
-        </tr>
+                    <tr>
+                        
+                        <td>{{$monitor->Fecha}}</td>
+                        <td>{{$monitor->Hora}}</td>
+                        <td>{{strtoupper($monitor->Lugar)}}</td>
+                        <td>{{$monitor->Detenido}}</td>
+                        <td>{{$monitor->Llamada}}</td>
+                        <?php 
+                            if($monitor->Temperatura==0)
+                                $temperatura = "N/A";
+                            else 
+                                $temperatura = $monitor->Temperatura;//."°C"; 
+                            
+                        ?>
+                        <td>{{$temperatura}}</td>
+                        <?php
+                            $novedadArray = explode("\\",$monitor->Novedad);
+                            $novedad = $novedadArray[0];
+                        ?>
+                        <td><br />{{strtoupper($novedad)}}</td>
+                        <!--<td>{{$monitor->Kilometraje}}</td>-->
+                    </tr>
+                <?php
+                }
+            ?>
         @endforeach
         
     </tbody>

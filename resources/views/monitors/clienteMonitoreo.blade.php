@@ -396,7 +396,7 @@
                           success: function(response) 
                           {
                                 console.log("Asignó activo");
-                                
+                                console.log(response);
                                 
                                 if(response['data'] != null)
                                 {

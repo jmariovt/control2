@@ -34,8 +34,17 @@ class MonitorsExport1 implements FromView, WithDrawings, ShouldAutoSize, WithSty
 
 
         $monitors = DB::select('exec spAlertaSeguimientoConsultarxMonitoreo ?,?,?,?',array($this->idMonitoreo,$this->fechaDesde,$this->fechaHasta,1));
-        
-        $this->registros = sizeof($monitors);
+        $contador = 0;
+        foreach ($monitors as $key => $monitor) {
+            $novedadArray = explode("\\",$monitor->Novedad);
+            $novedad = $novedadArray[0];
+            if(strpos(strtoupper($novedad),'ALERTA REPETIDA')===false)
+            {
+                $contador++;
+            }
+        }
+
+        $this->registros = $contador;//sizeof($monitors);
 
         $this->imprimeMapa = 1;
 
@@ -236,7 +245,7 @@ class MonitorsExport1 implements FromView, WithDrawings, ShouldAutoSize, WithSty
 
 
         $sheet->getStyle('A1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
-        $sheet->getStyle('A1')->getFill()->getStartColor()->setARGB('e3e3e3');
+        $sheet->getStyle('A1')->getFill()->getStartColor()->setARGB('E3E3E3');
 
         $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('A1')->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
@@ -244,11 +253,11 @@ class MonitorsExport1 implements FromView, WithDrawings, ShouldAutoSize, WithSty
 
         $sheet->getStyle('A3:A11')->getFont()->setBold(true);
         $sheet->getStyle('A3:A11')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
-        $sheet->getStyle('A3:A11')->getFill()->getStartColor()->setARGB('e3e3e3');
+        $sheet->getStyle('A3:A11')->getFill()->getStartColor()->setARGB('E3E3E3');
 
         $sheet->getStyle('D3:D11')->getFont()->setBold(true);
         $sheet->getStyle('D3:D11')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID);
-        $sheet->getStyle('D3:D11')->getFill()->getStartColor()->setARGB('e3e3e3');
+        $sheet->getStyle('D3:D11')->getFill()->getStartColor()->setARGB('E3E3E3');
         
         $sheet->getStyle('13')->getFont()->setBold(true);
 
@@ -286,7 +295,7 @@ class MonitorsExport1 implements FromView, WithDrawings, ShouldAutoSize, WithSty
        $sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_PORTRAIT);
        $sheet->getPageSetup()->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_A4);
        $sheet->getPageSetup()->setFitToPage(FALSE);
-       $sheet->getPageSetup()->setScale(62);
+       $sheet->getPageSetup()->setScale(60);//62
 
        $filaRepetir = array();
        $filaRepetir[0]='A13';

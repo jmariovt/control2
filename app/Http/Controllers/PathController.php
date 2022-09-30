@@ -21,6 +21,12 @@ class PathController extends Controller
         return view('paths.index',compact('rutas'));
     }
 
+    public function indexPostVenta()
+    {
+        $rutas = DB::select('exec spGetMonitoreoRutas');
+        return view('postventa.paths.index',compact('rutas'));
+    }
+
     /**
      * Show the form for creating a new resource.
      *
@@ -29,6 +35,10 @@ class PathController extends Controller
     public function create()
     {
         return view('paths.create');
+    }
+    public function createPostVenta()
+    {
+        return view('postventa.paths.create');
     }
 
     /**
@@ -49,6 +59,22 @@ class PathController extends Controller
             return redirect()->route('paths')->with('status',$mensaje);
         } catch (\Throwable $th) {
             return redirect()->route('paths')->withErrors('Se ha presentado un error al crear la Ruta.');
+        }
+        
+    }
+
+    public function storePostVenta(Request $request)
+    {
+        $nombre = $request->rutaNombre;
+        $detalle = $request->rutaDetalle;
+        $usuario = Auth::user()->Usuario; 
+        //ctx.spMonitoreoRutaIngresar(0, txtNombre.Text, txtDetalle.Text, UsuarioG)
+        try {
+            DB::insert('exec spMonitoreoRutaIngresar ?,?,?,?',array(0,$nombre,$detalle,$usuario));
+            $mensaje = 'Se ha creado la ruta correctamente';
+            return redirect()->route('pathsPostVenta')->with('status',$mensaje);
+        } catch (\Throwable $th) {
+            return redirect()->route('pathsPostVenta')->withErrors('Se ha presentado un error al crear la Ruta.');
         }
         
     }
@@ -75,6 +101,12 @@ class PathController extends Controller
         //No hace nada
         
         return redirect()->route('paths');
+    }
+    public function editPostVenta($id)
+    {
+        //No hace nada
+        
+        return redirect()->route('pathsPostVenta');
     }
 
     /**
@@ -113,12 +145,24 @@ class PathController extends Controller
         return view('paths.geocercasPorRuta',compact('geocercas','IdRuta'));
 
     }
+    public function geocercasPorRutaPostVenta($IdRuta)
+    {
+        $geocercas = DB::select('exec spGetMonitoreoRutasGeocercas ?',array($IdRuta));
+        return view('postventa.paths.geocercasPorRuta',compact('geocercas','IdRuta'));
+
+    }
 
     public function verGeocercas($IdRuta)
     {
         $geocercas = DB::select('exec spGeocercaConsultar ?',array(0));
         //$geocercas = DB::table('Geocerca')->select('IdGeocerca','Nombre')->orderby('Nombre')->paginate(20);
         return view('paths.todasGeocercas',compact('geocercas','IdRuta'));
+    }
+    public function verGeocercasPostVenta($IdRuta)
+    {
+        $geocercas = DB::select('exec spGeocercaConsultar ?',array(0));
+        //$geocercas = DB::table('Geocerca')->select('IdGeocerca','Nombre')->orderby('Nombre')->paginate(20);
+        return view('postventa.paths.todasGeocercas',compact('geocercas','IdRuta'));
     }
 
     public function asignarGeocerca(Request $request)
@@ -138,6 +182,23 @@ class PathController extends Controller
         }
         
     }
+    public function asignarGeocercaPostVenta(Request $request)
+    {
+        $IdRuta = $request->IdRuta;
+        $IdGeocerca = $request->IdGeocerca;
+        $usuario = Auth::user()->Usuario; 
+
+        $verificacion = DB::select('exec spGetMonitoreoGeocercasRutaLv ?,?',array($IdRuta,$IdGeocerca));
+        
+        try {
+            $dato = $verificacion[0]->IdGeocerca;
+            return redirect()->route('pathsPostVenta')->withErrors('Geocerca ya asignada a ruta.');
+        } catch (\Throwable $th) {
+            DB::insert('exec spMonitoreoRutasGeocercasIngresar ?,?,?,?,?',array($IdRuta,$IdGeocerca,1,1,$usuario));
+            return redirect()->route('pathsPostVenta')->with('status','Geocerca asignada correctamente.');
+        }
+        
+    }
 
     public function quitarGeocerca($IdRuta, $IdGeocerca)
     {
@@ -145,5 +206,12 @@ class PathController extends Controller
         DB::commit();
         $geocercas = DB::select('exec spGetMonitoreoRutasGeocercas ?',array($IdRuta));
         return view('paths.geocercasPorRuta',compact('geocercas','IdRuta'));
+    }
+    public function quitarGeocercaPostVenta($IdRuta, $IdGeocerca)
+    {
+        DB::delete('exec spMonitoreoRutasGeocercasEliminar ?,?',array($IdRuta,$IdGeocerca));
+        DB::commit();
+        $geocercas = DB::select('exec spGetMonitoreoRutasGeocercas ?',array($IdRuta));
+        return view('postventa.paths.geocercasPorRuta',compact('geocercas','IdRuta'));
     }
 }

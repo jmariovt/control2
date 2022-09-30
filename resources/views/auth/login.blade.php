@@ -43,9 +43,10 @@
                         <div class="form-group row">
                             <label for="Aplicacion" class="col-md-4 col-form-label text-md-right">Aplicación</label>
                             <div class="col-md-6">
-                                <select class="form-control-sm" id="Aplicacion" name="Aplicacion">
+                                <select class="form-select  form-select-sm" id="Aplicacion" name="Aplicacion">
 									<option value=37 selected>Monitoreo</option>
-									<option value=7>Post-Venta</option>
+									<option value=7>Comercial</option>
+                                    <option value=15>Cliente</option>
 									
 								</select>
                             </div>
@@ -55,7 +56,7 @@
 
                         <div class="form-group row mb-0">
                             <div class="col-md-8 offset-md-4">
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="btn btn-primary btn-sm">
                                     {{ __('Login') }}
                                 </button>
 

@@ -30,7 +30,7 @@ class SupervisorControl
         $tienePerfil = false;
 
         foreach ($arregloPerfiles as $perfil) {
-            if($perfiles=="1002")
+            if($perfil=="1002")
                 $tienePerfil = true;
         }
         if($tienePerfil)

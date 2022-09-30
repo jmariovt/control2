@@ -1,0 +1,209 @@
+<?php
+
+namespace XAdmin\Http\Controllers;
+
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Http\Request;
+
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Carbon;
+
+class LoginController extends Controller
+{
+    public function show()
+    {
+        return view('auth.login');
+    }
+
+   
+
+    public function showpv()
+    {
+        return view('auth.loginpostventa');
+    }
+
+    public function authenticate(Request $request)
+    {
+        $validator = $request->validate([
+            'Usuario'     => 'nullable',
+            //'SubUsuario'     => 'nullable',
+            'Clave'  => 'required|min:4',
+            'Aplicacion' => 'required'
+        ]);
+
+        $idAplicacion = $request->Aplicacion;
+
+        Log::info('Estoy en LoginController');
+        
+        if($request->Usuario)
+        {
+            Log::info('Entré a request->Usuario en LoginController');
+
+            $usuario = $request->Usuario;
+            $plain = $request->Clave;
+            //$idAplicacion = 37;//$credentials['Aplicacion']; //37
+            $ejecucion = 0;
+            $mensaje = "";
+            $ipAddr=\Request::ip();
+            $ejecucionOut="";
+            $mensajeOut="";
+            $fechaAhora = Carbon::now();
+            $fechaAhora = $fechaAhora->format('d/m/Y H:i:s');
+            try{
+                $resultado = DB::select('exec spMSAMpAutenticacionV2 ?,?,?,?,?,?,?,?,?,?,?,?,?',array($usuario,$plain,$idAplicacion,'','','','','',$ipAddr,0.0,0.0,$ejecucionOut,$mensajeOut));
+                
+                $ejecucion = $resultado[0]->Ejecucion;
+                $mensaje = $resultado[0]->Mensaje;
+                Log::info('LoginMario Mensaje: '.$mensaje);
+                Log::info('LoginMario Ejecucion: '.$ejecucion);
+                if($ejecucion=="1")
+                    $perfiles = $resultado[0]->Perfiles;
+            } catch (\Throwable $th) {
+                Log::info('LoginMario ERROR: '.$th->getMessage());
+                $ejecucion = "1";
+            }
+
+            if (Auth::guard('web')->attempt($validator)) {
+            //if ($ejecucion=="1") {
+                Log::info('LoginMario Ejecucion es 1');
+                $perfiles = $resultado[0]->Perfiles;
+                $tipoUsuario = $resultado[0]->TipoUsuario;
+                $IdUsuario = $resultado[0]->IdUsuario;
+                $idSubUsuario = $resultado[0]->IdSubUsuario;
+                $idCategoria = $resultado[0]->IdCategoria;
+                $descripcionCategoria = $resultado[0]->DescripcionCategoria;
+                $nombre = $resultado[0]->NombreCompleto;
+                session(['idApp' => $idAplicacion]);
+                session(['perfil' => $perfiles]);
+                session(['idUsuario' => $IdUsuario]);
+                session(['tipoUsuario' => $tipoUsuario]);  // (1) Usuario interno - (2) SubUsuario
+                session(['idSubUsuario' => $idSubUsuario]); // (0) Usuario interno - (>0) SubUsuario
+                session(['idCategoria' => $idCategoria]);   // (0) Usuario interno - (9) Supervisor - (10) Operador
+                session(['descripcionCategoria' => $descripcionCategoria]);
+                session(['nombre'=>$nombre]);
+                session(['usuario'=>$usuario]);
+
+                $hojaRuta_id = 0;
+                $hojaRuta_nombreCliente = "";
+                $hojaRuta_tipoCliente = "";
+                try {
+                    $usuarioHojaRuta = DB::select('exec spUsuarioHojaRutaConsultar ?,?',array($request->Usuario, $request->Clave));    
+                    $hojaRuta_id = $usuarioHojaRuta->ID;
+                    $hojaRuta_nombreCliente = $usuarioHojaRuta->NombreCliente;
+                    $hojaRuta_tipoCliente = $usuarioHojaRuta->TipoCliente;
+                } catch (\Throwable $th) {
+                    
+                }
+                
+                session(['hojaRuta_Id' => $hojaRuta_id]);
+                session(['hojaRuta_NombreCliente' => $hojaRuta_nombreCliente]);
+                session(['hojaRuta_TipoCliente' => $hojaRuta_tipoCliente]);
+
+                Log::info('LoginMario Voy a switch LoginController, idAplicacion '.$idAplicacion);
+                switch ($idAplicacion) {
+                    case 37:
+                        $ruta = 'monitors';
+                        break;
+                    case 7:
+                        $ruta = 'postVenta';
+                        break;
+                    case 15:
+                        $ruta = 'adminCliente';
+                        break;
+                    default:
+                        //$ruta = 'postVenta';
+                        break;  
+                }
+                Log::info('LoginMario Ruta: '.$ruta);
+                return redirect()->route($ruta);// route($ruta,'AGROEDEN');  ->with('cliente','CSALAZAR');//$request->Usuario);
+
+            }else
+            {
+                Log::info('Error en autorizacion LoginController');
+                return redirect()->back()->withInput()->withErrors('Datos incorrectos para la aplicación seleccionada.');
+            }
+        }/*else if(Auth::guard('subusers')->attempt($validator))
+        {
+            //$request->session()->regenerate();
+            switch ($idAplicacion) {
+                case 37:
+                    $ruta = 'monitors';  
+                    break;
+                
+                default:
+                    $ruta = 'postVenta';
+                    break;
+            }
+
+            return redirect()->route($ruta);
+        }*/else
+        {
+            Log::info('Error en LoginController');
+            return redirect()->back()->withInput()->withErrors('Datos incorrectos para la aplicación seleccionada o debe restablecer su contraseña.');
+        }  
+       
+    }
+
+
+
+
+    /*public function authenticateExt(Request $request)
+    {
+        $validator = $request->validate([
+            'SubUsuario'     => 'required',
+            'Clave'  => 'required|min:4',
+            'Aplicacion' => 'required'
+        ]);
+
+        $idAplicacion = $request->Aplicacion;
+
+        if (Auth::attempt($validator)) {
+            
+            //return $validator;
+            //return redirect()->route('monitors');
+
+
+            switch ($idAplicacion) {
+                case 37:
+                    $ruta = 'monitors';
+                    break;
+                
+                default:
+                    $ruta = 'postVenta';
+                    break;
+            }
+
+            return redirect()->route($ruta);
+
+
+        }else if(Auth::guard('subusers')->attempt($validator))
+        {
+            //$request->session()->regenerate();
+            switch ($idAplicacion) {
+                case 37:
+                    $ruta = 'monitors';
+                    break;
+                
+                default:
+                    $ruta = 'postVenta';
+                    break;
+            }
+
+            return redirect()->route($ruta);
+        }else
+        {
+            return redirect()->back()->withInput()->withErrors('Usuario o clave incorrectos para la aplicación seleccionada.');
+        }  
+       
+    }*/
+
+    public function logout()
+    {
+        Session::flush();
+        Auth::logout();
+        return back();
+    }
+}

@@ -9,10 +9,6 @@
 
     <title>{{ config('app.name', 'Xadmin') }}</title>
 
-    <!-- Scripts -->
-    <!--<script src="{{ asset('js/app.js') }}" defer></script>-->
-    
-
      <!-- CSS only -->
     
     <!--<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">-->
@@ -42,7 +38,7 @@
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">-->
 
     <script type="text/javascript" src="{{asset('js/moment.min.js')}}"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <!--<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script> COMENTADO PARA VER QUE PASA-->
     <script type="text/javascript" src="{{asset('js/daterangepicker.js')}}"></script>
     <link rel="stylesheet" type="text/css" href="{{asset('css/daterangepicker.css')}}" />
 
@@ -135,9 +131,11 @@
         <!--<nav class="navbar navbar-expand-lg navbar-dark bg-dark">-->
         <!--<nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">-->
             <div class="container-fluid">
-                <a class="navbar-brand" href="{{ url('/home') }}">
+                <!--<a class="navbar-brand" href="{{ url('/home') }}">-->
+                <a class="navbar-brand" href="">
                     {{ config('app.name', 'Laravel') }}
-                </a>
+			<img src="{{asset('Imagenes/Ecuador40.png')}}" style="height: 20px;"/>
+		</a>
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -145,63 +143,82 @@
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
                     <ul class="navbar-nav mr-auto">
-                        @guest
-                        @else
-                            <li class="nav-item">
-                                <a class="nav-link" href="/xadmin/puntos">Puntos</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/xadmin/geofences">Geocercas</a>
-                            </li>
+                        
+                        @if (Auth::guard('web')->check() || Auth::guard('websubusers')->check())
+                            @if (Auth::guard('web')->check())
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/xadmin/puntos">Puntos</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/xadmin/geofences">Geocercas</a>
+                                </li>
+                            @endif
                             <li class="nav-item">
                                 <a class="nav-link" href="/xadmin/monitors">Monitoreos</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/xadmin/monitors/recorrido">Recorrido</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/xadmin/monitors/consultaSMS">Consulta de SMS</a>
-                            </li>
-                            <!--<li class="nav-item">
-                                <a class="nav-link" href="#">Asig. Monit. x Producto</a>
-                            </li>-->
-                            <li class="nav-item">
-                                <a class="nav-link" href="/xadmin/paths">Rutas</a>
-                            </li>
-                        @endguest
+                            @if (Auth::guard('web')->check())
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/xadmin/monitors/recorrido">Recorrido</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/xadmin/monitors/consultaSMS">Consulta de SMS</a>
+                                </li>
+                                <!--<li class="nav-item">
+                                    <a class="nav-link" href="#">Asig. Monit. x Producto</a>
+                                </li>-->
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/xadmin/paths">Rutas</a>
+                                </li>
+                            @endif
+                        @endif
                     </ul>
 
                     <!-- Right Side Of Navbar -->
                     <ul class="navbar-nav ml-auto">
                         <!-- Authentication Links -->
-                        @guest
+                        @if (Auth::guard('web')->check() || Auth::guard('websubusers')->check())
+                            <li class="nav-item dropdown">
+                                    <?php
+                                        if(Auth::guard('web')->check())
+                                        {
+                                            $Nombre = Auth::guard('web')->user()->Nombre;
+                                            $logout = 'logout';
+                                        }
+                                        else
+                                        {
+                                            $Nombre = session('nombre');//Auth::guard('websubusers')->user()->Nombre;
+                                            $logout = 'extlogout';
+                                        }
+                                    ?>
+                                    <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                        {{ $Nombre }} <span class="caret"></span>
+                                    </a>
+
+                                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+                                    <a class="dropdown-item" href="{{ route($logout) }}"
+                                        onclick="event.preventDefault();
+                                                        document.getElementById('logout-form').submit();">
+                                            {{ __('Logout') }}
+                                        </a>
+
+                                        <form id="logout-form" action="{{ route($logout) }}" method="POST" style="display: none;">
+                                            @csrf
+                                        </form>
+                                    </div>
+                            </li>
+                        @else
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
+                            <!--<a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>-->
+                                <a class="nav-link" href="">{{ __('Login') }}</a>
                             </li>
                             @if (Route::has('registerer'))
                                 <li class="nav-item">
                                     <a class="nav-link" href="{{ route('register') }}">{{ __('Register') }}</a>
                                 </li>
                             @endif
-                        @else
-                            <li class="nav-item dropdown">
-                                <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                    {{ Auth::user()->Nombre }} <span class="caret"></span>
-                                </a>
-
-                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
-                                <a class="dropdown-item" href="{{ route('logout') }}"
-                                       onclick="event.preventDefault();
-                                                     document.getElementById('logout-form').submit();">
-                                        {{ __('Logout') }}
-                                    </a>
-
-                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
-                                        @csrf
-                                    </form>
-                                </div>
-                            </li>
-                        @endguest
+                        
+                            
+                        @endif
                     </ul>
                 </div>
             </div>
@@ -344,8 +361,14 @@
             if(localStorage["soloporiniciar"] == "1"){
                 console.log('Mostrar solo por iniciar');
                 localStorage.setItem("soloporiniciar", "0");
-                muestraSoloNoIniciados();
+                //muestraSoloNoIniciados();
             }
+        }
+        if(document.getElementById("FechaHoraInicioFin")){
+            var fechaIni = $('#FechaHoraInicio').val();
+            var fechaFin = $('#FechaHoraFin').val();
+            //$('#FechaHoraInicioFin').data('daterangepicker').setStartDate(fechaIni);
+            //$('#FechaHoraInicioFin').data('daterangepicker').setEndDate(fechaFin);
         }
     };
 
@@ -379,7 +402,7 @@
         {
             
                 
-                    td = tr[i].getElementsByTagName("td")[2];
+                    td = tr[i].getElementsByTagName("td")[3];
                     if (td) {
                         txtValue =  td.textContent ;//|| td.innerText;
                         if (txtValue.slice(0,1)=="1") {
@@ -413,7 +436,7 @@
             var continua = 1;
             
                 
-                    td = tr[i].getElementsByTagName("td")[14];
+                    td = tr[i].getElementsByTagName("td")[15];
                     if (td) {
                         txtValue = td.textContent || td.innerText;
                         //console.log(txtValue);
@@ -469,7 +492,7 @@
             var continua = 1;
             for(i=0;i<tr.length;i++)
             {
-                td = tr[i].getElementsByTagName("td")[9];
+                td = tr[i].getElementsByTagName("td")[10];
                 if(td)
                 {
                     txtValue = td.innerText;
@@ -504,7 +527,7 @@
             var continua = 1;
             
                 
-            td = tr[i].getElementsByTagName("td")[14];
+            td = tr[i].getElementsByTagName("td")[15];
             if (td) {
                 txtValue = td.textContent || td.innerText;
                 //console.log(txtValue);
@@ -544,7 +567,7 @@
         {
             var continua = 1;
             
-                td = tr[i].getElementsByTagName("td")[2];
+                td = tr[i].getElementsByTagName("td")[3];
                     if (td) {
                         txtValue =  td.textContent ;//|| td.innerText;
                         if (txtValue.slice(0,1)=="1") {
@@ -580,7 +603,7 @@
             var continua = 1;
             for(i=0;i<tr.length;i++)
             {
-                td = tr[i].getElementsByTagName("td")[9];
+                td = tr[i].getElementsByTagName("td")[10];
                 if(td)
                 {
                     txtValue = td.innerText;
@@ -646,7 +669,8 @@ $(document).ready(function(){
     $( "#aliasMonitoreosAnteriores" ).autocomplete({
         source: function( request, response ) 
         {
-            
+            var idUsuario = $("#idUsuario").val();
+            var idSubUsuario = $("#idSubUsuario").val();
             // Fetch data
             $.ajax({
                 url:"{{route('assets.buscarActivoConId')}}",
@@ -654,7 +678,9 @@ $(document).ready(function(){
                 dataType: "json",
                 data: {
                     _token: CSRF_TOKEN,
-                    search: request.term
+                    search: request.term,
+                    idUsuario: idUsuario,
+                    idSubUsuario: idSubUsuario
                 },
                 success: function( data ) {
                     response( data );
@@ -674,7 +700,8 @@ $(document).ready(function(){
   $( "#alias" ).autocomplete({
         source: function( request, response ) 
         {
-            
+            var idUsuario = $("#idUsuario").val();
+            var idSubUsuario = $("#idSubUsuario").val();
             // Fetch data
             $.ajax({
                 url:"{{route('assets.buscarActivoConId')}}",
@@ -682,7 +709,9 @@ $(document).ready(function(){
                 dataType: "json",
                 data: {
                     _token: CSRF_TOKEN,
-                    search: request.term
+                    search: request.term,
+                    idUsuario: idUsuario,
+                    idSubUsuario: idSubUsuario
                 },
                 success: function( data ) {
                     response( data );
@@ -743,37 +772,37 @@ $(document).ready(function(){
     var IdActivo = $("#idActivoAux").val();
     // AJAX request 
     $.ajax({
-                url: '/xadmin/monitors/getLastMonitors/'+IdActivo,
-                type: 'get',
-                dataType: 'json',
-                success: function(response)
+        url: '/xadmin/monitors/getLastMonitors/'+IdActivo,
+        type: 'get',
+        dataType: 'json',
+        success: function(response)
+        {
+            var len = 0;
+            if(response['data'] != null)
+            {
+                len = response['data'].length;
+            }
+            if(len > 0)
+            {
+                $('#monitoreos').find('option').remove();
+                // Le datos y crea <option >
+                var option = "<option value='0'>Elija un monitoreo anterior</option>";
+                $("#monitoreos").append(option);
+                for(var i=0; i<len; i++)
                 {
-                    var len = 0;
-                    if(response['data'] != null)
-                    {
-                        len = response['data'].length;
-                    }
-                    if(len > 0)
-                    {
-                        $('#monitoreos').find('option').remove();
-                        // Le datos y crea <option >
-                        var option = "<option value='0'>Elija un monitoreo anterior</option>";
-                        $("#monitoreos").append(option);
-                        for(var i=0; i<len; i++)
-                        {
 
-                            var idMonitoreo = response['data'][i].IdMonitoreo;
-                            var horaInicio = response['data'][i].FechaHoraInicio;
-                            var horaFin = response['data'][i].FechaHoraFin;
+                    var idMonitoreo = response['data'][i].IdMonitoreo;
+                    var horaInicio = response['data'][i].FechaHoraInicio;
+                    var horaFin = response['data'][i].FechaHoraFin;
 
-                            var option = "<option value='"+idMonitoreo+"'>"+idMonitoreo+"; "+horaInicio+"; "+horaFin+"</option>"; 
+                    var option = "<option value='"+idMonitoreo+"'>"+idMonitoreo+"; "+horaInicio+"; "+horaFin+"</option>"; 
 
-                            $("#monitoreos").append(option); 
-                        }
-                    }
-
+                    $("#monitoreos").append(option); 
                 }
-            });
+            }
+
+        }
+    });
   }
 
     function traeProductos() 
@@ -937,7 +966,7 @@ $(document).ready(function(){
                 "firstDay": 1
             },
             "opens": 'center',
-            "startDate": moment().startOf('day').add(-3,'day'),
+            "startDate": moment().startOf('day').add(-1,'day'),
             "endDate": moment(),
             "maxDate":  moment()
             
@@ -979,6 +1008,25 @@ $(document).ready(function(){
                     },
                     success: function( response ) {
                         len = response['data'].length;
+
+
+                        var idUsuario = $("#idUsuario").val();
+                        var idSubUsuario = $("#idSubUsuario").val();
+                        var idCategoria = $("#idCategoria").val();
+
+                        if(idSubUsuario=="0")
+                        {
+                            styleColumna = "display: none;";
+                        }else
+                        {
+                            if(idCategoria=="9") //Es Supervisor
+                            {
+                                styleColumna = "text-align: center;";
+                            }else{
+                                styleColumna = "display: none;";
+                            }
+                        }
+
                         $("#areaImagen").hide();
                         if(response['data'] != null)
                         {
@@ -1006,7 +1054,7 @@ $(document).ready(function(){
                             var IdActivo = response['data'][i].IdActivo;
                             var EstadoReal = response['data'][i].EstadoReal;
                             var DescripcionTipoMonitoreo = response['data'][i].DescripcionTipoMonitoreo;
-
+                            var NombreCompleto = response['data'][i].NombreCompleto;
                             var arregloAlertas = DetalleAlertas.split('%');
                             //console.log('cantidad alertas: '+arregloAlertas.length);
 
@@ -1102,7 +1150,7 @@ $(document).ready(function(){
                             imagenModificar = 'Imagenes/edit_orange.svg';
                             imagenReportes = 'Imagenes/printer_green.svg';
 
-                            $('#tablaMonitoreos > tbody:last-child').append('<tr><td style="text-align: center;">'+DescripcionTipoMonitoreo+'</td><td style="text-align: center;">'+VID+'</td> <td width="8%" style="text-align: center;"><img src="'+imagenReportando+'" height="25" title="'+textoReportando+'"  id="imagenBuscando" ><label hidden>'+Reportando+'</label><label hidden>'+textoReportando+'</label></td>  <td style="text-align: center;">'+CodSysHunter+'</td><td style="text-align: center;">'+Alias+'</td><td>'+Entidades+'</td><td style="text-align: center;">'+FechaHoraInicio+'</td><td style="text-align: center;">'+FechaHoraFin+'</td><td style="text-align: center;">'+Estado+'</td><td id="tdAlertas"><form class="form-group" method="POST"><input type="hidden" class="form-control form-control-sm" id="muestraTodas_'+IdMonitoreo+'" name="muestraTodas_'+IdMonitoreo+'" value="NO"><div id="areaAlertas_'+IdMonitoreo+'">'+htmAlertas+'</div></br>'+htmBotonMostrarAlertas+htmBotonEliminarAlertas+'</form></td><td>'+htmPlanes+'</td> <td><a href="/xadmin/monitors/informes/'+IdMonitoreo+'/'+FechaHoraInicio+'/'+FechaHoraFin+'/'+Alias+'"  target="_blank" onclick="window.open(\'/xadmin/monitors/informes/'+IdMonitoreo+'/'+FechaHoraInicio+'/'+FechaHoraFin+'/'+Alias+'\',\'newwindow\',\'width=900,height=900\'); return false;" ><img src="'+imagenReportes+'" title="Informes"  style="height: 20px;"/></a></td><td style="text-align: center;"><a href="https://www.huntermonitoreo.com/Geo/Paginas/SeguimientoVA.aspx?P='+Alias+'*'+VID+'&TIME=A22EFEE5-A978-4C4B-AC69-1643DEA1E913"  target="_blank" onclick="window.open(\'https:\/\/www.huntermonitoreo.com/Geo/Paginas/SeguimientoVA.aspx?P='+Alias+'*'+VID+'&TIME=A22EFEE5-A978-4C4B-AC69-1643DEA1E913\',\''+Alias+'\',\'width=400,height=400, top=0, left='+posicionHorizontal+'\'); return false;"><img src="'+imagenSeguimiento+'" title="Seguimiento"  style="height: 20px; align: center;"/></a></td><td><a href="/xadmin/monitors/edit/'+IdMonitoreo+'"  ><img src="'+imagenModificar+'"  title="Editar"  style="height: 20px;"/></a></td>'+iniciarDetener+'</tr>');
+                            $('#tablaMonitoreos > tbody:last-child').append('<tr><td style="text-align: center;">'+DescripcionTipoMonitoreo+'</td><td style="'+styleColumna+'">'+NombreCompleto+'</td><td style="text-align: center;">'+VID+'</td> <td width="8%" style="text-align: center;"><img src="'+imagenReportando+'" height="25" title="'+textoReportando+'"  id="imagenBuscando" ><label hidden>'+Reportando+'</label><label hidden>'+textoReportando+'</label></td>  <td style="text-align: center;">'+CodSysHunter+'</td><td style="text-align: center;">'+Alias+'</td><td>'+Entidades+'</td><td style="text-align: center;">'+FechaHoraInicio+'</td><td style="text-align: center;">'+FechaHoraFin+'</td><td style="text-align: center;">'+Estado+'</td><td id="tdAlertas"><form class="form-group" method="POST"><input type="hidden" class="form-control form-control-sm" id="muestraTodas_'+IdMonitoreo+'" name="muestraTodas_'+IdMonitoreo+'" value="NO"><div id="areaAlertas_'+IdMonitoreo+'">'+htmAlertas+'</div></br>'+htmBotonMostrarAlertas+htmBotonEliminarAlertas+'</form></td><td>'+htmPlanes+'</td> <td><a href="/xadmin/monitors/informes/'+IdMonitoreo+'/'+FechaHoraInicio+'/'+FechaHoraFin+'/'+Alias+'"  target="_blank" onclick="window.open(\'/xadmin/monitors/informes/'+IdMonitoreo+'/'+FechaHoraInicio+'/'+FechaHoraFin+'/'+Alias+'\',\'newwindow\',\'width=900,height=900\'); return false;" ><img src="'+imagenReportes+'" title="Informes"  style="height: 20px;"/></a></td><td style="text-align: center;"><a href="https://www.huntermonitoreo.com/Geo/Paginas/SeguimientoVA.aspx?P='+Alias+'*'+VID+'&TIME=A22EFEE5-A978-4C4B-AC69-1643DEA1E913"  target="_blank" onclick="window.open(\'https:\/\/www.huntermonitoreo.com/Geo/Paginas/SeguimientoVA.aspx?P='+Alias+'*'+VID+'&TIME=A22EFEE5-A978-4C4B-AC69-1643DEA1E913\',\''+Alias+'\',\'width=400,height=400, top=0, left='+posicionHorizontal+'\'); return false;"><img src="'+imagenSeguimiento+'" title="Seguimiento"  style="height: 20px; align: center;"/></a></td><td><a href="/xadmin/monitors/edit/'+IdMonitoreo+'" onclick=\'window.open("/xadmin/monitors/edit/'+IdMonitoreo+'","modificar_'+IdMonitoreo+'",width=1500,height=900); return false;\' ><img src="'+imagenModificar+'"  title="Editar"  style="height: 20px;"/></a></td>'+iniciarDetener+'</tr>');
 
                             
                             //Deshacer hasta aqui
@@ -1116,6 +1164,107 @@ $(document).ready(function(){
                 });
             
         }
+
+        $('#FechaHoraInicioFinCreate').daterangepicker({
+            "locale": {
+                "format": "DD-MM-YYYY HH:mm",
+                "separator": " / ",
+                "applyLabel": "Aplicar",
+                "cancelLabel": "Cancelar",
+                "fromLabel": "Desde",
+                "toLabel": "Hasta",
+                "customRangeLabel": "Custom",
+                "weekLabel": "S",
+                "daysOfWeek": [
+                    "Do",
+                    "Lu",
+                    "Ma",
+                    "Mi",
+                    "Ju",
+                    "Vi",
+                    "Sa"
+                ],
+                "monthNames": [
+                    "Enero",
+                    "Febrero",
+                    "Marzo",
+                    "Abril",
+                    "Mayo",
+                    "Junio",
+                    "Julio",
+                    "Agosto",
+                    "Septiembre",
+                    "Octubre",
+                    "Noviembre",
+                    "Diciembre"
+                ],
+                "firstDay": 1
+            },
+            "autoUpdateInput": true,
+            "timePicker": true,
+            "opens": 'center',
+            "timePicker24Hour": true,
+            "startDate": moment().startOf('minute'),
+            "minDate": moment().startOf('day').add(-1,'day'),
+            "endDate": moment().startOf('minute').add(+1440,'minute')
+            //"maxDate":  moment()
+            
+        }, function(start, end, label) {
+            console.log("A new date selection was made: " + start.format('DD-MM-YYYY hh:mm') + ' to ' + end.format('DD-MM-YYYY hh:mm'));
+            //buscarMonitoreos(start.format('DD/MM/YYYY'), end.format('DD/MM/YYYY'));
+            
+        });
+
+
+        $('#FechaHoraInicioFinEdit').daterangepicker({
+            "locale": {
+                "format": "DD-MM-YYYY HH:mm",
+                "separator": " / ",
+                "applyLabel": "Aplicar",
+                "cancelLabel": "Cancelar",
+                "fromLabel": "Desde",
+                "toLabel": "Hasta",
+                "customRangeLabel": "Custom",
+                "weekLabel": "S",
+                "daysOfWeek": [
+                    "Do",
+                    "Lu",
+                    "Ma",
+                    "Mi",
+                    "Ju",
+                    "Vi",
+                    "Sa"
+                ],
+                "monthNames": [
+                    "Enero",
+                    "Febrero",
+                    "Marzo",
+                    "Abril",
+                    "Mayo",
+                    "Junio",
+                    "Julio",
+                    "Agosto",
+                    "Septiembre",
+                    "Octubre",
+                    "Noviembre",
+                    "Diciembre"
+                ],
+                "firstDay": 1
+            },
+            "autoUpdateInput": true,
+            "timePicker": true,
+            "opens": 'center',
+            "timePicker24Hour": true,
+            //"startDate": moment().startOf('minute'),
+            "minDate": moment().startOf('day').add(-1,'day')//,
+            //"endDate": moment().startOf('minute').add(+1440,'minute')
+            //"maxDate":  moment()
+            
+        }, function(start, end, label) {
+            console.log("A new date selection was made: " + start.format('DD-MM-YYYY hh:mm') + ' to ' + end.format('DD-MM-YYYY hh:mm'));
+            //buscarMonitoreos(start.format('DD/MM/YYYY'), end.format('DD/MM/YYYY'));
+            
+        });
     });
 </script>
 
@@ -1192,6 +1341,15 @@ $(document).ready(function(){
     });
 </script>
 
+<script type="text/javascript">
+    $(document).ready(function(){
+        $('#FechaHoraInicioFinCreate').change(function(){
+            $('#cambiaFechaHoraInicioFin').val('SI');
+            //alert('Hola');
+        });
+    });
+</script>
+
 
 <script type="text/javascript">
     var CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content');
@@ -1207,27 +1365,27 @@ $(document).ready(function(){
         $('#storeMonitor').submit(function() {
 
             var alias = $("#alias").val();
-            var fechaHoraInicio = $("#FechaHoraInicio").val();
-            var fechaHoraFin = $("#FechaHoraFin").val();
+            var fechaHoraInicioFin = $("#FechaHoraInicioFinCreate").val();
+            //var fechaHoraFin = $("#FechaHoraFin").val();
             
             var tipoMonitoreo = $("#TipoMonitoreo option:selected").val();
             var eventos = $("#ListaEventos option:selected").text();
             var planesAccion = $("#ListaPlanesDeAccion option:selected").text();
 
-            var haCambiadoFechaInicio  = $("#cambiaFechaHoraInicio").val();
-            var haCambiadoFechaFin  = $("#cambiaFechaHoraFin").val();
+            var haCambiadoFechaInicioFin  = $("#cambiaFechaHoraInicioFin").val();
+            //var haCambiadoFechaFin  = $("#cambiaFechaHoraFin").val();
 
             //e.preventDefault();
 
-            if (alias=="" || fechaHoraInicio=="" || fechaHoraFin=="" || eventos=="" )//|| planesAccion==""
+            if (alias=="" || fechaHoraInicioFin==""  || eventos=="" )//|| planesAccion==""
             {
                 alert('Verifique los datos ingresados para Continuar');
                 return false;
             }else
             {
-                if(haCambiadoFechaInicio == "NO" || haCambiadoFechaFin == "NO" )
+                if(haCambiadoFechaInicioFin == "NO" )
                 {   
-                    if(confirm("Ud no ha modificado al menos una de las fechas, ¿desea continuar?"))
+                    if(confirm("Ud no ha modificado las fechas, ¿desea continuar?"))
                     {  
                         localStorage.setItem("update", "1");
                         //this.submit();
@@ -1257,8 +1415,8 @@ $(document).ready(function(){
         $('#updateMonitor').submit(function() {
 
             var alias = $("#alias").val();
-            var fechaHoraInicio = $("#FechaHoraInicio").val();
-            var fechaHoraFin = $("#FechaHoraFin").val();
+            var fechaHoraInicioFinEdit = $("#FechaHoraInicio").val();
+            //var fechaHoraFin = $("#FechaHoraFin").val();
             
             var tipoMonitoreo = $("#TipoMonitoreo option:selected").val();
             var eventos = $("#ListaEventos option:selected").text();
@@ -1269,7 +1427,7 @@ $(document).ready(function(){
 
             //e.preventDefault();
 
-            if (alias=="" || fechaHoraInicio=="" || fechaHoraFin=="" )
+            if (alias=="" || fechaHoraInicioFinEdit=="" )
             {
                 alert('Verifique los datos ingresados para Continuar');
                 return false;
@@ -1606,52 +1764,52 @@ $(document).ready(function()
         {
             //alert("Seleccione al menos una alerta "+idMonitoreo);
             $.ajax({
-                        url:"{{route('monitors.mostrarTodasAlertas')}}",
-                        type: "post",
-                        dataType: "json",
-                        data: {
-                            _token: CSRF_TOKEN,
-                            idMonitoreo: idMonitoreo,
-                            idActivo: idActivo
+                url:"{{route('monitors.mostrarTodasAlertas')}}",
+                type: "post",
+                dataType: "json",
+                data: {
+                    _token: CSRF_TOKEN,
+                    idMonitoreo: idMonitoreo,
+                    idActivo: idActivo
+                
+                },
+                success: function( response ) 
+                {
+                    if(response != null)
+                    {
                         
-                        },
-                        success: function( response ) 
-                        {
-                            if(response != null)
-                            {
-                                
-                                len = response.length;
-                                console.log("Trajo "+len+" datos");
-                                
-                                var htmAlertas = "";
-                                var idMonitoreo = "";
-                                for (index = 6; index < len; index++) {
-                                    console.log(response[index]['alerta']);
-                                    alerta = response[index]['alerta'];
+                        len = response.length;
+                        console.log("Trajo "+len+" datos");
+                        
+                        var htmAlertas = "";
+                        var idMonitoreo = "";
+                        for (index = 6; index < len; index++) {
+                            console.log(response[index]['alerta']);
+                            alerta = response[index]['alerta'];
 
-                                    var arregloFila = alerta.split(';');
-                                
-                                    for(var ind = 0; ind < arregloFila.length; ind++){
-                                        if(ind==3)
-                                        {
-                                            idMonitoreo = arregloFila[0];
-                                            if($('#CheckAlerta_'+arregloFila[0]+'_'+arregloFila[1]).length <=0)
-                                            {
-                                                console.log('Alerta: '+arregloFila[3]);
-                                                
-                                                htmAlertas = htmAlertas + '<fieldset class="form-group"><div class="form-check"><input class="form-check-input" type="checkbox" value="'+arregloFila[0]+'_'+arregloFila[1]+'" id="CheckAlerta_'+arregloFila[0]+'_'+arregloFila[1]+'"><label class="form-check-label" for="CheckAlerta_'+arregloFila[0]+'_'+arregloFila[1]+'"><a href="/xadmin/monitors/editalert/'+arregloFila[0]+'/'+arregloFila[1]+'" onclick="window.open(\'/xadmin/monitors/editalert/'+arregloFila[0]+'/'+arregloFila[1]+'\',\'modificar_'+arregloFila[0]+'\',\'width=1500,height=900\'); return false;"  >'+arregloFila[3]+'</a></label></div></fieldset>';
-                                            }
-                                        }
+                            var arregloFila = alerta.split(';');
+                        
+                            for(var ind = 0; ind < arregloFila.length; ind++){
+                                if(ind==3)
+                                {
+                                    idMonitoreo = arregloFila[0];
+                                    if($('#CheckAlerta_'+arregloFila[0]+'_'+arregloFila[1]).length <=0)
+                                    {
+                                        console.log('Alerta: '+arregloFila[3]);
+                                        
+                                        htmAlertas = htmAlertas + '<fieldset class="form-group"><div class="form-check"><input class="form-check-input" type="checkbox" value="'+arregloFila[0]+'_'+arregloFila[1]+'" id="CheckAlerta_'+arregloFila[0]+'_'+arregloFila[1]+'"><label class="form-check-label" for="CheckAlerta_'+arregloFila[0]+'_'+arregloFila[1]+'"><a href="/xadmin/monitors/editalert/'+arregloFila[0]+'/'+arregloFila[1]+'" onclick="window.open(\'/xadmin/monitors/editalert/'+arregloFila[0]+'/'+arregloFila[1]+'\',\'modificar_'+arregloFila[0]+'\',\'width=1500,height=900\'); return false;"  >'+arregloFila[3]+'</a></label></div></fieldset>';
                                     }
-                                    
                                 }
-                                document.getElementById("areaAlertas_"+idMonitoreo).innerHTML += htmAlertas;
-                                $('#muestraTodas_'+idMonitoreo).val("SI");
-                                $("#btnMostrarTodasAlertas_"+idMonitoreo).html("Mostrar menos");
-                                
                             }
                             
                         }
+                        document.getElementById("areaAlertas_"+idMonitoreo).innerHTML += htmAlertas;
+                        $('#muestraTodas_'+idMonitoreo).val("SI");
+                        $("#btnMostrarTodasAlertas_"+idMonitoreo).html("Mostrar menos");
+                        
+                    }
+                    
+                }
             });
         }else{
             $('#areaAlertas_'+idMonitoreo).empty();
@@ -2368,19 +2526,47 @@ $(document).ready(function(){
     optsGeocerca = $('#ListaGeocercas option').map(function () {
         return [[this.value, $(this).text()]];
     });
+
+    var contadorGeocercasEncontradas = 0;
     
     $('#geocercaAbuscar').keyup(function () {
+
+        var textoGeocercas = $('#geocercaAbuscar').val();
+        var ultimoCaracter = textoGeocercas.substr (textoGeocercas.length - 1);
+
+        var arregloGeocercas = textoGeocercas.split(";");
         
-        var rxp = new RegExp($('#geocercaAbuscar').val(), 'i');
         var optlist = $('#ListaGeocercas').empty();
-        optsGeocerca.each(function () {
-            if (rxp.test(this[1])) {
-                optlist.append($('<option/>').attr('value', this[0]).attr('style','font-size:14px').text(this[1]));
-            } else{
-                optlist.append($('<option/>').attr('value', this[0]).attr('style','font-size:14px').text(this[1]).addClass("hidden"));
-            }
-        });
-        $(".hidden").toggleOption(false);
+        
+
+        for(i=0;i<arregloGeocercas.length;i++)
+        {
+        
+        
+            var rxp = new RegExp(arregloGeocercas[i], 'i');
+            if(ultimoCaracter==";")
+                optlist = $('#ListaGeocercas').empty();
+            //var rxp = new RegExp($('#geocercaAbuscar').val(), 'i');
+       
+            
+            optsGeocerca.each(function () {
+                
+                if (rxp.test(this[1])) {
+                    optlist.append($('<option/>').attr('value', this[0]).attr('style','font-size:14px').text(this[1]));
+                    
+                } else{
+                    optlist.append($('<option/>').attr('value', this[0]).attr('style','font-size:14px').text(this[1]).addClass("hidden"));
+                }
+                
+            });
+            $(".hidden").toggleOption(false);
+        }
+            
+            
+        
+       
+        
+        
     });
 
     jQuery.fn.toggleOption = function( show ) {
@@ -2435,20 +2621,27 @@ $(document).ready(function(){
         minLength: 3,
         source: function( request, response ) 
         {
+            placa=request.term;
+            if(placa.toUpperCase()!="S/P")
+            {
+                $.ajax({
+                    url:"{{route('assets.buscarActivoConVId')}}",
+                    type: 'post',
+                    dataType: "json",
+                    data: {
+                        _token: CSRF_TOKEN,
+                        search: request.term
+                    },
+                    success: function( data ) {
+                        response( data );
+                    }
+                });
+            }else
+            {
+                console.log("sin placa");
+                buscaUIDSinPlaca();
+            }
             
-            // Fetch data
-            $.ajax({
-                url:"{{route('assets.buscarActivoConVId')}}",
-                type: 'post',
-                dataType: "json",
-                data: {
-                    _token: CSRF_TOKEN,
-                    search: request.term
-                },
-                success: function( data ) {
-                    response( data );
-                }
-            });
         },
             select: function (event, ui) {
             // Set selection
@@ -2488,6 +2681,36 @@ $(document).ready(function(){
                 }
         });
   }
+  function buscaUIDSinPlaca()
+  {
+      console.log("VID: "+$('#recorridoVid').val());
+    $.ajax({
+                url:"{{route('assets.buscarUidConVid')}}",
+                type: 'post',
+                dataType: "json",
+                data: {
+                    _token: CSRF_TOKEN,
+                    vid: $('#recorridoVid').val()
+                },
+                success: function( response ) 
+                {
+                            if(response['uid'] != null)
+                            {
+                                //var IdMonitoreo = response['data'][i].IdMonitoreo;
+                                len = response['uid'].length;
+                                console.log("Trajo "+len+" datos");
+                                //console.log(response['vid']);
+                                console.log(response['uid']);
+                                //$('#recorridoVid').val(response['vid']);
+                                $('#recorridoUid').val(response['uid']);
+                                //location.reload();
+                                //alert(response['data'].resultado);
+                                
+                            }
+                            
+                }
+        });
+  }
 });
 </script>
 
@@ -2510,10 +2733,10 @@ $(document).ready(function(){
             var Inicial = $('#recorridoFechaDesde').val();
             var Final = $('#recorridoFechaHasta').val();
 
-            if (VID == '' || vUID == '' || Inicial == '' || Final == '') {
-                alert('No se puede generar el reporte, datos incompletos');
-                return false;
-            }
+            //if (VID == '' || vUID == '' || Inicial == '' || Final == '') {
+            //    alert('No se puede generar el reporte, datos incompletos');
+            //    return false;
+            //}
 
             window.open('http://www.huntermonitoreo.com/GeoTest/Paginas/Recorrido.aspx?TIME=' + vUID + '&ID=' + VID + '&P=' + Placa + '&I=CUS&T=CUS&INI=' + Inicial + '&FIN=' + Final + '&ctrl=1&FHS=1', 'vnRecorridoXA', 'status=0,left=230,top=5,fullscreen=no,width=940,height=660,menubar=no,resizable=0,titlebar=0,scrollbars=vertical', true);
             VID = null; Placa = null; Inicial = null; Final = null; Formato = null;
@@ -2641,6 +2864,7 @@ $(document).ready(function(){
     {
         var CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content');
         var result = "0";
+        var alertasPendientes = 0;
         console.log("idmonitoreo= "+idMonitoreo1);
         activo = -1;
          $.ajax({
@@ -2661,22 +2885,103 @@ $(document).ready(function(){
 
                     console.log("Es de tia "+result);
                     console.log("Activo: "+activo); 
+
+                    var estado = 0, estadoReal = 0, fechaInicio = "";
+                    if(response['estado']!=null)
+                    {
+                        console.log(response['estado']);
+                        estado = response['estado'][0].estado;
+                        estadoReal = response['estado'][0].EstadoReal;
+                        fechaInicio = response['estado'][0].FechaHoraInicioReal;
+                        console.log("Estado: "+estado+". EstadoReal: "+estadoReal+". FechaInicio: "+fechaInicio); 
+                        if(estado=="A"&&fechaInicio!=null&&estadoReal==1)
+                        {
+                            console.log("Se va a finalizar monitoreo");
+                        }else
+                        {
+                            console.log("Se va a iniciar monitoreo");
+                        }
+                    }
+                    if(response['caidas']!=null)
+                    {
+                        alertasPendientes = response['caidas'];
+                        console.log("Alertas pendientes: "+alertasPendientes);
+                    }
+
                     if (result == '1')
                     {
                         console.log("Activo: "+activo); 
-                        if (confirm(" ¿ Desea crear el monitoreo automático para TIA con las alertas de Apertua/Cierre de puertas e Ignición Off:  ? Activo: "+activo+", Monitoreo: "+idMonitoreo1)) {
+                        if (confirm(" ¿ Desea crear el monitoreo automático para TIA con las alertas de Apertura/Cierre de puertas e Ignición Off:  ? Activo: "+activo+", Monitoreo: "+idMonitoreo1)) {
                             crearMonitoreoAutomatico(activo, idMonitoreo1);
                         }
                         if (confirm(" ¿ Realmente desea iniciar o detener el monitoreo ? ")){
-                            controlarMonitoreo(idMonitoreo1);
-                            location.reload();
+                            if(estado=="A"&&fechaInicio!=null&&estadoReal==1)
+                            {
+                                console.log("Se está finalizando monitoreo");
+                                
+                                console.log("Alertas pendientes: "+alertasPendientes);
+                                if(alertasPendientes>=1)
+                                {
+                                    var mensaje = " Monitoreo tiene "+ alertasPendientes + " alerta(s) pendiente(s) por gestionar. ¿ Desea finalizar de todas formas ? ";
+                                    if(confirm(mensaje))
+                                    {
+                                        
+                                        controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                        location.reload();
+                                    }else
+                                    {
+                                        //window.location.replace("alerts");
+                                        //$('<a href="/xadmin/alerts"  ></a>')[0].click();
+                                    }
+                                }else
+                                {
+                                    controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                    location.reload();
+                                }
+                            }else  
+                            {
+                                console.log("Se está inciando el monitoreo");
+                                controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                location.reload();
+                            }
+                            
+                            //controlarMonitoreo(idMonitoreo1);
+                            //location.reload();
                         }
                         
                     }else
                     {
                         if (confirm(" ¿ Realmente desea iniciar o detener el monitoreo ?")) {
-                            controlarMonitoreo(idMonitoreo1);
-                            location.reload();
+                            if(estado=="A"&&fechaInicio!=null&&estadoReal==1)
+                            {
+                                console.log("Se está finalizando monitoreo");
+                                
+                                console.log("Alertas pendientes: "+alertasPendientes);
+                                if(alertasPendientes>=1)
+                                {
+                                    var mensaje = " Monitoreo tiene "+ alertasPendientes + " alerta(s) pendiente(s) por gestionar. ¿ Desea finalizar de todas formas ? ";
+                                    if(confirm(mensaje))
+                                    {
+                                        controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                        location.reload();
+                                    }else
+                                    {
+                                        //window.location.replace("alerts");
+                                        //$('<a href="/xadmin/alerts" ></a>')[0].click();
+                                    }
+                                }else
+                                {
+                                    controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                    location.reload();
+                                }
+                            }else  
+                            {
+                                console.log("Se está inciando el monitoreo");
+                                controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                location.reload();
+                            }
+                            //controlarMonitoreo(idMonitoreo1);
+                            //location.reload();
                         } 
                     }
                     
@@ -2736,6 +3041,10 @@ $(document).ready(function(){
             
     }
 
+   
+
+    
+
 
     function crearMonitoreoAutomatico(idactivo, monitoreoOriginal) {
         var CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content');
@@ -2768,7 +3077,7 @@ $(document).ready(function(){
      }
 
 
-     function controlarMonitoreo(idMonitoreo) {
+     function controlarMonitoreo(idMonitoreo,alertasPendientes) {
         var CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content');
          var result = 0, msg = '';
          console.log("entra a controlar monitoreo");
@@ -2778,6 +3087,7 @@ $(document).ready(function(){
              dataType: "json",
              data: {
                 IdMonitoreo : idMonitoreo , 
+                alertasPendientes : alertasPendientes ,
                 _token : CSRF_TOKEN 
                 },
              
@@ -2865,6 +3175,61 @@ $(document).ready(function(){
         }
     }
 </script>
+
+<script type="text/javascript">
+    function buscaRutasInput()
+    {
+        
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("inputBuscarRuta");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("tbodyRutas");
+        tr = table.getElementsByTagName("tr");
+
+        // Loop through all table rows, and hide those who don't match the search query
+        /*for (i = 0; i < tr.length; i++) 
+        {
+                   
+                    td = tr[i].getElementsByTagName("td")[1];
+                    if (td) {
+                        txtValue = td.textContent || td.innerText;
+                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                            tr[i].style.display = "";
+                            
+                        } else {
+                            tr[i].style.display = "none";
+                        }
+                    }
+               
+            
+        }*/
+        // Loop through all table rows, and hide those who don't match the search query
+        for (i = 0; i < tr.length; i++) 
+        {
+            var continua = 1;
+            for(j=0;j<=1;j++)
+            {
+                if(continua==1)
+                {
+                    td = tr[i].getElementsByTagName("td")[j];
+                    if (td) {
+                        txtValue = td.textContent || td.innerText;
+                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                            tr[i].style.display = "";
+                            continua=0;
+                        } else {
+                            tr[i].style.display = "none";
+                        }
+                    }
+                }
+                
+            }
+            
+        }
+    }
+</script>
+
+
 
 <script type="text/javascript">
 

@@ -37,6 +37,18 @@ class AlertsExportSeguimientoAlertas implements FromView, ShouldAutoSize, WithSt
     protected $promAlertasContestadasAgente;
     protected $promAlertasTotalContestadasAgente;
 
+    protected $tipoAlerta;
+    protected $agente;
+    protected $producto;
+    protected $dispositivo;
+    protected $motivoAlerta;
+    protected $alertasRepetidas;
+    protected $casosEnviados;
+    protected $robos;
+    protected $datosIncorrectos;
+
+    
+
     public function __construct(Request $request)
     {
         $this->unidadBuscar = $request->unidadBuscar;
@@ -56,6 +68,45 @@ class AlertsExportSeguimientoAlertas implements FromView, ShouldAutoSize, WithSt
         $this->totalAlertasContestadasAgente = $request->totalAlertasContestadasAgente;
         $this->promAlertasContestadasAgente = $request->promAlertasContestadasAgente;
         $this->promAlertasTotalContestadasAgente = $request->promAlertasTotalContestadasAgente;
+
+
+        $this->tipoAlerta = $request->tipoAlerta;
+        $this->agente = $request->agente;
+        $this->producto = $request->producto;
+        $this->dispositivo = $request->dispositivo;
+        $this->motivoAlerta = $request->motivoAlerta;
+        $this->alertasRepetidas = $request->alertasRepetidas;
+        $this->casosEnviados = $request->casosEnviados;
+        $this->robos = $request->robos;
+        $this->datosIncorrectos = $request->datosIncorrectos;
+
+
+        if($this->fechaDesde == null)
+            $this->fechaDesde = '';
+        if($this->fechaHasta == null)
+            $this->fechaHasta = '';
+        if($this->tipoAlerta == null)
+            $this->tipoAlerta = '0';
+        if($this->unidadBuscar == null )
+            $this->unidadBuscar = '';
+        if($this->idActivo == null || $this->idActivo == '')
+            $this->idActivo = '0';
+        //if($this->agente == null)
+        //    $this->agente = '';
+        if($this->producto == null)
+            $this->producto = '';
+        if($this->dispositivo == null)
+            $this->dispositivo = '';
+        if($this->motivoAlerta == null)
+            $this->motivoAlerta = '0';
+        if($this->alertasRepetidas == null)
+            $this->alertasRepetidas = '';
+        if($this->casosEnviados == null)
+            $this->casosEnviados = '';
+        if($this->robos == null)
+            $this->robos = '';
+        if($this->datosIncorrectos == null)
+            $this->datosIncorrectos = '';
 
         
         
@@ -79,8 +130,70 @@ class AlertsExportSeguimientoAlertas implements FromView, ShouldAutoSize, WithSt
         $totalAlertasContestadasAgente = $this->totalAlertasContestadasAgente;
         $promAlertasContestadasAgente = $this->promAlertasContestadasAgente;
         $promAlertasTotalContestadasAgente = $this->promAlertasTotalContestadasAgente;
+        $fechaDesde = $this->fechaDesde;
+        $fechaHasta = $this->fechaHasta;
+        $idActivo = $this->idActivo;
+        $agente = $this->agente;
+        $producto = $this->producto;
+        $dispositivo = $this->dispositivo;
+        $tipoAlerta = $this->tipoAlerta;
+        $motivoAlerta = $this->motivoAlerta;
+        $alertasRepetidas = $this->alertasRepetidas;
+        $casosEnviados = $this->casosEnviados;
+        $robos = $this->robos;
+        $datosIncorrectos = $this->datosIncorrectos;
+
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+        if($fechaDesde == null)
+            $fechaDesde = '';
+        if($fechaHasta == null)
+            $fechaHasta = '';
+        if($tipoAlerta == null)
+            $tipoAlerta = '0';
+        if($idActivo == null || $idActivo == '')
+            $idActivo = '0';
+        if($agente == null)
+            $agente = '';
+        if($producto == null)
+            $producto = '';
+        if($dispositivo == null)
+            $dispositivo = '';
+        if($motivoAlerta == null)
+            $motivoAlerta = '0';
+        if($alertasRepetidas == null)
+            $alertasRepetidas = '';
+        if($casosEnviados == null)
+            $casosEnviados = '';
+        if($robos == null)
+            $robos = '';
+        if($datosIncorrectos == null)
+            $datosIncorrectos = '';
 
 
+       
+
+        if($idSubUsuario=="0")
+        {
+            // ES UN USUARIO INTERNO
+            $alertas = DB::select('exec spAlertaSeguimientoConsultarLv ?,?,?,?,?,?,?,?,?,?,?,?',array($idActivo,$fechaDesde,$fechaHasta,$agente,$producto,$dispositivo,$tipoAlerta,$motivoAlerta,$alertasRepetidas,$casosEnviados,$robos,$datosIncorrectos));    
+            //$parametros = $this->idActivo.' - '.$this->fechaDesde.' - '.$this->fechaHasta.' - '.$this->agente.' - '.$this->producto.' - '.$this->dispositivo.' - '.$this->tipoAlerta.' - '.$this->motivoAlerta.' - '.$this->alertasRepetidas.' - '.$this->casosEnviados.' - '.$this->robos.' - '.$this->datosIncorrectos;
+        }else
+        {
+            if($this->agente=='')
+            {
+                $alertas = DB::select('exec spAlertaSeguimientoConsultarLvExternoSinNombre ?,?,?,?,?,?,?,?,?,?,?,?',array($this->idActivo,$this->fechaDesde,$this->fechaHasta,$this->agente,$this->producto,$this->dispositivo,$this->tipoAlerta,$this->motivoAlerta,$this->alertasRepetidas,$this->casosEnviados,$this->robos,$this->datosIncorrectos));
+                
+            }else
+            {
+                $alertas = DB::select('exec spAlertaSeguimientoConsultarLvExterno ?,?,?,?,?,?,?,?,?,?,?,?',array($this->idActivo,$this->fechaDesde,$this->fechaHasta,$this->agente,$this->producto,$this->dispositivo,$this->tipoAlerta,$this->motivoAlerta,$this->alertasRepetidas,$this->casosEnviados,$this->robos,$this->datosIncorrectos));
+                
+            }
+        }
+
+        
 
         return view('alerts.formatoseguimientoalertas', [
             'totalAlertasGeneradas' => $totalAlertasGeneradas,
@@ -93,7 +206,13 @@ class AlertsExportSeguimientoAlertas implements FromView, ShouldAutoSize, WithSt
             'promDatosIncorrectos' => $promDatosIncorrectos,
             'totalAlertasContestadasAgente' => $totalAlertasContestadasAgente,
             'promAlertasContestadasAgente' => $promAlertasContestadasAgente,
-            'promAlertasTotalContestadasAgente' => $promAlertasTotalContestadasAgente
+            'promAlertasTotalContestadasAgente' => $promAlertasTotalContestadasAgente,
+            'alertas'=>$alertas,
+            'idSubUsuario'=>$idSubUsuario,
+            'agente'=>$agente
+            
+            
+            
         ]);
     }
 

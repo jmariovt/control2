@@ -68,12 +68,12 @@
         ?>
         <tr>
             <td rowspan="2">Ciudad y Lugar:</td>
-            <td colspan="6" rowspan="2">{{$arreglo_direccion_origen[0]}}</td>
+            <td colspan="6" rowspan="2">{{$arreglo_direccion_origen[0]??''}}</td>
         </tr>
         <tr><td>&nbsp;</td></tr>
         <tr>
             <td rowspan="2">Dirección:</td>
-            <td colspan="6" rowspan="2">{{$arreglo_direccion_origen[1]}}</td>
+            <td colspan="6" rowspan="2">{{$arreglo_direccion_origen[1]??''}}</td>
         </tr>
         <tr><td>&nbsp;</td></tr>
         <tr>
@@ -90,12 +90,12 @@
         ?>
         <tr>
             <td rowspan="2">Ciudad y Lugar:</td>
-            <td colspan="6" rowspan="2">{{$arreglo_direccion_destino[0]}}</td>
+            <td colspan="6" rowspan="2">{{$arreglo_direccion_destino[0]??''}}</td>
         </tr>
         <tr><td>&nbsp;</td></tr>
         <tr>
             <td rowspan="2">Dirección:</td>
-            <td colspan="6" rowspan="2">{{$arreglo_direccion_destino[1]}}</td>
+            <td colspan="6" rowspan="2">{{$arreglo_direccion_destino[1]??''}}</td>
         </tr>
         <tr><td>&nbsp;</td></tr>
         <tr>
@@ -114,11 +114,11 @@
             ?>
             <tr>
                 <td>{{$conteo}}.- Nombre:</td>
-                <td colspan="6">{{$arreglo_contacto[0]}}</td>
+                <td colspan="6">{{$arreglo_contacto[0]??''}}</td>
             </tr>
             <tr>
                 <td >Email:</td>
-                <td colspan="6">{{$arreglo_contacto[1]}}</td>
+                <td colspan="6">{{$arreglo_contacto[1]??''}}</td>
             </tr>
             <tr>
                 <td colspan="7">&nbsp;</td>
@@ -143,11 +143,11 @@
             ?>
             <tr>
                 <td>{{$conteo}}.- Lugar:</td>
-                <td colspan="6">{{$arreglo_parada[0]}}</td>
+                <td colspan="6">{{$arreglo_parada[0]??''}}</td>
             </tr>
             <tr>
                 <td >Tiempo:</td>
-                <td colspan="6">{{$arreglo_parada[1]}}</td>
+                <td colspan="6">{{$arreglo_parada[1]??''}}</td>
             </tr>
             <tr>
                 <td colspan="7">&nbsp;</td>
@@ -171,11 +171,11 @@
             ?>
             <tr>
                 <td >Celular:</td>
-                <td colspan="6">{{$arreglo_observaciones[0]}}</td>
+                <td colspan="6">{{$arreglo_observaciones[0]??''}}</td>
             </tr>
             <tr>
                 <td >Correo:</td>
-                <td colspan="6">{{$arreglo_observaciones[1]}}</td>
+                <td colspan="6">{{$arreglo_observaciones[1]??''}}</td>
             </tr>
             <tr>
                 <td colspan="7">&nbsp;</td>

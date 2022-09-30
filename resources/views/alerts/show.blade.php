@@ -212,40 +212,663 @@
                             <a class="btn btn-outline-primary btn-block" data-toggle="collapse" href="#alertasxAtender" role="button" aria-expanded="true" aria-controls="alertasxAtender">
                             Alertas por atender
                             </a>
-                        </div>
-                        <div class="collapse multi-collapse" id="alertasxAtender">
-                            <div class="container-fluid">	
-                                <table class="table table-condensed table-hover table-striped" id="tablaAlertasXAtender" name="tablaAlertasXAtender" width="100%" >
-                                    <thead >
+                    </div>
+                    <div class="collapse multi-collapse" id="alertasxAtender">
+                        <div class="container-fluid">	
+                            <div style="align:center;">
+                                <input class="form-check-input" type="checkbox" value="" id="CheckSeleccionaTodas" name="CheckSeleccionaTodas" onclick="seleccionarTodasAlertas()">
+                                <label class="form-check-label" for="CheckSeleccionaTodas">Seleccionar todas</label>
+                            </div>
+                            <table class="table table-condensed table-hover table-striped" id="tablaAlertasXAtender" name="tablaAlertasXAtender" width="100%" >
+                                <thead >
+                                    <tr>
+                                        <th width="25%">Fecha Ocurrencia</th>
+                                        <th width="25%">Alerta</th>
+                                        <th width="25%">Dirección</th>
+                                        <th width="25%">Atender</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyAlertasXAtender" name="tbodyAlertasXAtender">
+                                    @foreach($SecuenciasXAtender as $SecuenciaXAtender)
                                         <tr>
-                                            <th width="25%">Fecha Ocurrencia</th>
-                                            <th width="25%">Alerta</th>
-                                            <th width="25%">Dirección</th>
-                                            <th width="25%">Atender</th>
+                                            <td>
+                                                {{$SecuenciaXAtender->FechaOcurrencia}}
+                                            </td>
+                                            <td>
+                                                {{$SecuenciaXAtender->Alerta}}
+                                            </td>
+                                            <td>
+                                                {{$SecuenciaXAtender->Direccion}}
+                                            </td>
+                                            <td>
+                                                <input class="form-check-input" type="checkbox" value="{{$SecuenciaXAtender->Secuencia}}" id="CheckSecuencia_{{$SecuenciaXAtender->Secuencia}}" name="CheckSecuencia_{{$SecuenciaXAtender->Secuencia}}">
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody id="tbodyMonitoreos" name="tbodyMonitoreos">
-                                        @foreach($SecuenciasXAtender as $SecuenciaXAtender)
+                                    @endforeach
+                                </tbody>
+                            </table>
+                                
+                        </div>
+                    </div>
+                    <?php
+                        $idUsuario = session('idUsuario');
+                        $idSubUsuario = session('idSubUsuario');
+                        $idCategoria = session('idCategoria');
+
+                        if($idSubUsuario!="0")
+                        {
+                    ?>
+                    <div class="row">
+                        <a class="btn btn-outline-primary btn-block" data-toggle="collapse" href="#informacionAgregada" role="button" aria-expanded="true" aria-controls="informacionAgregada">
+                            Información Agregada
+                        </a>
+                    </div>
+                    <div class="collapse multi-collapse" id="informacionAgregada">
+                        <div class="container-fluid">	
+                            
+                            <table class="table table-condensed table-hover table-striped" id="tablaInformacionAgregada" name="tablaInformacionAgregada" width="100%" >
+                                
+                                <tbody id="tbodyInformacionAgregada" name="tbodyInformacionAgregada">
+                                    <?php
+                                        $infoAgregadaJson = $alerta->informacion_agregada;
+                                        $infoAgregada1 = json_decode($infoAgregadaJson, true);
+                                        $esWatchfoxpdu = "1";
+                                        
+                                        try {
+                                            $infoAgregada = $infoAgregada1['WATCHFOXPDU'];
+                                            $esWatchfoxpdu = "1";
+                                            
+                                        } catch (\Throwable $th) {
+                                            try {
+                                                $infoAgregada = $infoAgregada1['JELOUPDU'];
+                                                $esWatchfoxpdu = "0";
+                                            } catch (\Throwable $th) {
+                                                
+                                            }
+                                            
+                                        }
+                                        try {
+                                            $productos = $infoAgregada1['WATCHFOXPDU']['products'];
+                                        } catch (\Throwable $th) {
+                                            $productos = array();
+                                        }
+                                            
+                                            
+                                        
+                                    ?>
+                                    @if($esWatchfoxpdu=="1")
+                                        <tr>
+                                            <td>
+                                                IdAlerta
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['idalerta']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Fecha Generada
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['fechagenerada']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Status
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['status']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Info URL
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['info_url']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                ID cliente
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['client_id']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        
+
+                                        <!--@foreach($productos as $producto)
                                             <tr>
                                                 <td>
-                                                    {{$SecuenciaXAtender->FechaOcurrencia}}
+                                                    Producto: 
                                                 </td>
                                                 <td>
-                                                    {{$SecuenciaXAtender->Alerta}}
-                                                </td>
-                                                <td>
-                                                    {{$SecuenciaXAtender->Direccion}}
-                                                </td>
-                                                <td>
-                                                    <input class="form-check-input" type="checkbox" value="{{$SecuenciaXAtender->Secuencia}}" id="CheckSecuencia_{{$SecuenciaXAtender->Secuencia}}" name="CheckSecuencia_{{$SecuenciaXAtender->Secuencia}}">
+                                                    Cantidad: 
                                                 </td>
                                             </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                                        @endforeach-->
+                                        <tr>
+                                            <td>
+                                                Producto:
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                    {{$productos['product']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Cantidad:
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                    {{$productos['quantity']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                Zona
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['zona']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Latitud
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['latitud']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Longitud
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['longitud']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Driver TimeStamp
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['driver_timestamp']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Conductor
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['conductor']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Placa
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['placa']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+					</tr>
+					<tr>
+                                            <td>
+                                                Delivery Code
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['delivery_code']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Delivery Message
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['delivery_message']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                DateTimeReceived
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['DateTimeReceived']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Remote Address
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['RemoteAddress']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Remote Port
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['RemotePort']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Local Address
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['LocalAddress']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Local Port
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['WATCHFOXPDU']['LocalPort']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                    @else
+                                    <tr>
+                                            <td>
+                                                ID reference
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['referenceId']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                ID Cliente
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['codigoCliente']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Experience
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['experience']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Reason
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['reason']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                ID Transaction
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['transactionId']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Created At
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['createdAt']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Updated At
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['updatedAt']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+
+                                        
+                                        <tr>
+                                            <td>
+                                                ID Usuario
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['IdUsuario']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Remote Address
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['RemoteAddress']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Remote Port
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['RemotePort']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Local Address
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['LocalAddress']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                Local Port
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['LocalPort']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                DateTime Received
+                                            </td>
+                                            <td>
+                                                <?php
+                                                    try {
+                                                ?>
+                                                {{$infoAgregada1['JELOUPDU']['DateTimeReceived']}}
+                                                <?php
+                                                    } catch (\Throwable $th) {
+                                                        //throw $th;
+                                                    }
+                                                ?>
+                                            </td>
+                                        </tr>
+                                        
+                                        
+                                        
+                                    @endif
+
+                                    
+                                            
+                                       
+                                 
+                                </tbody>
+                            </table>
                                 
-                            </div>
                         </div>
+                    </div>
+                    <div class="row">
+                        <a class="btn btn-outline-primary btn-block" data-toggle="collapse" href="#visualizarJson" role="button" aria-expanded="true" aria-controls="visualizarJson">
+                            Visualizar JSON
+                        </a>
+                    </div>
+                    <div class="collapse multi-collapse" id="visualizarJson">
+                        <div class="container-fluid">
+                            <textarea class="form-control" id="columnaJson" rows="25" disabled>{{json_encode($infoAgregada1,JSON_PRETTY_PRINT)}}</textarea>
+                        </div>
+                    </div>
+                        
+                    <?php
+                        }
+                    ?>
                 </div>
             </div>
        
@@ -762,6 +1385,21 @@ $(document).ready(function(){
             alert('Debe de Ingresar un Motivo de Alerta para Continuar');
             return false;
         }
+        
+        var gestionRealizada = $("#gestionRealizada").val();
+        if (gestionRealizada=="")
+        {
+            alert('Debe de Ingresar Gestión');
+            return false;
+        }
+        //gestionRealizada.replace(/[_\W]+/g, "");
+        if(/^[a-zA-Z0-9- ]*$/.test(gestionRealizada) == false) {
+            //alert('Texto ingresado en la Gestión Realizada contiene caracteres no permitidos.');
+            //return false;
+            const regex = /[!"#$%&'()*+-/<=>?@[\]^_`{|}~]/g;
+            result = gestionRealizada.replace(regex, '');
+            $("#gestionRealizada").val(result);
+        }
         $(window).off('beforeunload');
         return true;
             
@@ -781,5 +1419,27 @@ $(document).ready(function(){
         
     });
 </script>
+
+<script type="text/javascript">
+    
+        function seleccionarTodasAlertas()
+        {
+            
+            $("#tbodyAlertasXAtender input[type=checkbox]").each(function(){
+                if(jQuery(this).is(":checked"))
+                {
+                    $(this).prop('checked', false);
+                    
+                }else
+                {
+                    $(this).prop('checked', true);
+                    
+                }
+                
+            });
+        }
+  
+</script>
+
 
 </html>

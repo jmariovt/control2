@@ -105,7 +105,7 @@
                                         <form class="form-group" method="POST" action="/xadmin/monitors/storeIngresarClienteMonitoreo">
                                         @csrf
                                             <div class="form-group">
-                                                <select class="form-control-sm" id="selTipo">
+                                                <select class="form-control-sm" id="selTipo" name="selTipo">
                                                     <option selected value="0">Seleccione el tipo</option>
                                                     <option value="I">Interno</option>
                                                     <option value="E">Externo</option>

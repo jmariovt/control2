@@ -46,7 +46,7 @@
     <script type="text/javascript" src="{{asset('js/daterangepicker.js')}}"></script>
     <link rel="stylesheet" type="text/css" href="{{asset('css/daterangepicker.css')}}" />
 
-    <script type="text/javascript" src="http://maps.google.com/maps/api/js?key=AIzaSyBuMimu7-55am4RMe-W3y8nhSXGqfJMGvQ"></script>
+    <script type="text/javascript" src="https://maps.google.com/maps/api/js?key=AIzaSyBuMimu7-55am4RMe-W3y8nhSXGqfJMGvQ"></script>
 
     
 
@@ -133,7 +133,7 @@
                                                     }
                                                 ?>
 										        <label for="geofenceTipo">Tipo de geocerca</label>
-                                                <select class="form-control form-control-sm" id="geofenceTipo">
+                                                <select class="form-control form-control-sm" id="geofenceTipo" name="geofenceTipo">
                                                     <option value="1" $selectPoligonal>Poligonal</option>
                                                     <option value="2" $selectLineal>Lineal</option>
                                                     <option value="3" $selectCircular>Circular</option>

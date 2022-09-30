@@ -4,7 +4,12 @@
 @include('common.errors')
 <!-- Modal -->
 											
-											      
+<?php
+use Illuminate\Support\Carbon;
+$fechaAhora = Carbon::now();
+$fechaAhora = $fechaAhora->format('d/m/Y H:i:s');
+Log::info('Lentitud. Inicia pantalla creacion de Monitoreo'.$fechaAhora);
+?>			      
 <div class="container-fluid">
     <div class="row justify-content-center">
         <div class="col-md-12">
@@ -39,6 +44,8 @@
 										<div class="form-group" >
 											<input type="text" class="form-control form-control-sm" id="alias" name="alias" placeholder="Unidad a buscar" value="{{ old('alias')}}" >
 											<div id=aliasList></div>
+											<input type="hidden" class="form-control form-control-sm" id="idUsuario" name="idUsuario" value="{{$idUsuario}}">
+											<input type="hidden" class="form-control form-control-sm" id="idSubUsuario" name="idSubUsuario" value="{{$idSubUsuario}}">
 										</div>
 										<div class="form-group">
 											<input type="hidden" class="form-control form-control-sm" id="idActivo" name="idActivo" placeholder="Unidad a buscar" value="{{ old('idActivo')}}" >
@@ -96,13 +103,17 @@
 												</select>
 											</div>
 									<div class="form-group">
-										<input type='text' id='FechaHoraInicio' class="form-control form-control-sm" name="FechaHoraInicio" placeholder="Fecha Hora Inicio" autocomplete="off" value="{{ $fechaInicio }}"/>
+										<input type='hidden' id='FechaHoraInicio' class="form-control form-control-sm" name="FechaHoraInicio" placeholder="Fecha Hora Inicio" autocomplete="off" value="{{ $fechaInicio }}"/>
 										<input type='hidden' id='cambiaFechaHoraInicio' class="form-control form-control-sm" name="cambiaFechaHoraInicio" value="NO" />
 										
 									</div>
 									<div class="form-group">
-										<input type='text' id="FechaHoraFin" class="form-control form-control-sm" name="FechaHoraFin" placeholder="Fecha Hora Fin" autocomplete="off" value="{{ $fechaFin }}" />
+										<input type='hidden' id="FechaHoraFin" class="form-control form-control-sm" name="FechaHoraFin" placeholder="Fecha Hora Fin" autocomplete="off" value="{{ $fechaFin }}" />
 										<input type='hidden' id='cambiaFechaHoraFin' class="form-control form-control-sm" name="cambiaFechaHoraFin" value="NO"  />
+									</div>
+									<div class="form-group">
+										<input type='text' id='FechaHoraInicioFinCreate' class="form-control form-control-sm" name="FechaHoraInicioFinCreate" placeholder="Fecha Hora Inicio - Fin" autocomplete="off" value="{{ $fechaInicio }} / {{ $fechaFin }}"/>
+										<input type='hidden' id='cambiaFechaHoraInicioFin' class="form-control form-control-sm" name="cambiaFechaHoraInicioFin" value="NO" />
 									</div>
 									<div class="form-group">
 										<label for="Estado">Activo</label>

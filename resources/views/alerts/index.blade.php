@@ -147,6 +147,29 @@
         </ul>
     </div>
     @endif
+
+    <?php 
+        if (Auth::guard('websubusers')->check())
+        {    
+            $styleExterno = "display: none;";
+            $typeInput = "hidden";
+            $styleComboGrupos = "";
+            
+        }
+        else
+        {
+            $styleExterno = "";
+            $typeInput = "text";
+            $styleComboGrupos = "display: none;";
+        }  
+        
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+    ?>
+        
+   
         
 
         <!--<main class="py-4">
@@ -156,21 +179,22 @@
           
 
             <form class="form-group" method="POST" action="">
+                        <input type="hidden" class="form-control form-control-sm" id="idSubUsuario" name="idSubUsuario" value="{{$idSubUsuario ?? ''}}">
                         <table class="" id="tablaContadoresMonitoreos" border="0" name="tablaContadoresMonitoreos" width="100%">
 							
 								
 							<tr>
-								<td >Alertas por Producto</td>
+								<td style="{{$styleExterno}}"><label class="form-check-label text-dark"><b>Alertas por Producto</b></label></td>
 								<td  align="center"><label class="form-check-label text-dark"><b>Alertas: </b></label></td>
-								<td  align="center"><label class="form-check-label text-dark"><b>&nbsp;</b></label></td>
-                                <td  align="center"><label class="form-check-label text-dark"><b>&nbsp;</b></label></td>
-                                <td  align="center"><label class="form-check-label text-dark"><b>&nbsp;</b></label></td>
-                                <td  align="center"><label class="form-check-label text-dark"><b>&nbsp;</b></label></td>
+								<td  ><label class="form-check-label text-dark"><b>Atendiéndose</b></label></td>
+                                <td  ><label class="form-check-label text-dark"><b>P. Normal</b></label></td>
+                                <td  ><label class="form-check-label text-dark"><b>P. Media</b></label></td>
+                                <td  ><label class="form-check-label text-dark"><b>P. Alta</b></label></td>
 								
 							</tr>
 							<tr>
 								
-								<td >
+								<td style="{{$styleExterno}}">
                                     <div class="material-switch">
                                          
                                         <input class="form-check-input" type="checkbox" id="switchPorProducto">
@@ -179,13 +203,66 @@
                                     
                                 </td>
                                 <td align="center"><h3><label class="form-check-label text-dark" id="contadorAlertas"></label></h3></td>
-                                <td align="center"><h3><span class="badge rounded-pill text-white bg-success" id="contadorAtendiendose">0</span></h3></td>
-                                <td align="center"><h3><span class="badge rounded-pill text-dark alert-custom" id="contadorAmarillas">0</span></h3></td>
-                                <td align="center"><h3><span class="badge rounded-pill text-white bg-warning" id="contadorNaranjas">0</span></h3></td>
-                                <td align="center"><h3><span class="badge rounded-pill text-white bg-danger" id="contadorRojas">0</span></h3></td>
+                                <td ><h3><span class="badge rounded-pill text-white bg-success" id="contadorAtendiendose">0</span></h3></td>
+                                <td ><h3><span class="badge rounded-pill text-dark alert-custom" id="contadorAmarillas">0</span></h3></td>
+                                <td ><h3><span class="badge rounded-pill text-white bg-warning" id="contadorNaranjas">0</span></h3></td>
+                                <td ><h3><span class="badge rounded-pill text-white bg-danger" id="contadorRojas">0</span></h3></td>
 								
 								
 							</tr>
+                            <tr>
+								<td style="{{$styleExterno}}">
+                                    &nbsp;
+
+                                </td>
+                                <td>
+                                    @if ($idSubUsuario=="0")
+                                        &nbsp;
+                                    @else
+                                        <select class="form-control-sm" id="selectGrupos">
+                                            <option value="0" SELECTED>TODOS LOS GRUPOS</option>
+                                            @foreach($gruposUsuario as $grupoUsuario)
+                                            
+                                            <option value="{{$grupoUsuario->IdGrupo}}">{{$grupoUsuario->Grupo}}</option>
+                                            @endforeach
+                                            
+                                            
+                                        </select>
+                                    @endif
+
+                                </td>
+								<td>
+									<div class="material-switch">
+                                         
+										 <input class="form-check-input" type="checkbox" id="switchAtendiendose">
+										 <label class="label-primary" for="switchAtendiendose"></label>
+									</div>
+								</td>
+								
+								<td>
+									<div class="material-switch">
+                                         
+										 <input class="form-check-input" type="checkbox" id="switchAmarillas">
+										 <label class="label-primary" for="switchAmarillas"></label>
+									</div>
+								</td>
+								
+								<td> 
+									<div class="material-switch">
+                                         
+										 <input class="form-check-input" type="checkbox" id="switchNaranjas">
+										 <label class="label-primary" for="switchNaranjas"></label>
+									</div>
+								</td>
+                                <td> 
+									<div class="material-switch">
+                                         
+										 <input class="form-check-input" type="checkbox" id="switchRojas">
+										 <label class="label-primary" for="switchRojas"></label>
+									</div>
+								</td>
+							</tr>
+                                
 							
 										
 							
@@ -197,7 +274,7 @@
            
                            
                             
-                                <input type="text" class="form-control form-control-sm" id="aliasBuscar" placeholder="Filtrar Cliente...">
+                                <input type="{{$typeInput}}" class="form-control form-control-sm" id="aliasBuscar" placeholder="Filtrar Cliente...">
                                 <!--<button type="button" class="btn btn-primary btn-sm " id="btBuscarAlertasTodosParametros" name="btBuscarAlertasTodosParametros">Buscar todos</button>-->
                                 <input type="text" class="form-control form-control-sm" onkeyup="buscaAlertasInput()" id="buscadorAlertas" name="buscadorAlertas" placeholder="Filtrar...">
                             
@@ -219,6 +296,11 @@
                         $revisadoPor="";
                         $luzAlarma = "Imagenes/LuzAlarmaAmarilla.png";
                         
+                        if($alerta->EstadoAlarma=='')
+                        {
+                            $clase = "card text-center text-dark alert-custom  mb-3";
+                            $claseTitulo="card-title text-dark";
+                        }
                         
                         if($alerta->EstadoAlarma==0)
                         {
@@ -229,14 +311,15 @@
                            
                         if($alerta->EstadoAlarma==1)
                         {
-                            $clase = "card text-center text-dark alert-custom mb-3";
+                            $clase = "card  text-center text-dark bg-warning mb-3";
                             $claseTitulo="card-title text-warning bg-dark";
                         }
                             
                         if($alerta->EstadoAlarma==2)
                         {
-                            $clase = "card text-center text-dark  alert-custom mb-3";
-                            $claseTitulo="card-title text-danger bg-dark";
+                            //$clase = "card text-center text-dark  alert-custom mb-3";
+                            $clase = "card text-center text-dark bg-warning mb-3";
+                            $claseTitulo="card-title text-dark";
                             $luzAlarma = "Imagenes/LuzAlarmaRoja.png";
                         }
                             
@@ -266,13 +349,47 @@
                                 ?>
                                 <p class="card-text"><b>{{$vid}}</b></p>
                                 <?php
-                                    $evento = substr($alerta->Evento, 0, 21);
+                                    $evento = $alerta->Evento;//substr($alerta->Evento, 0, 21);
+                                    $client_id = "";
+                                    $html_client_id = "----------";
+
+                                    if($idSubUsuario!="0")
+                                    {
+                                        $arregloEvento = explode(" - ",$evento);
+                                        if(sizeof($arregloEvento)==2)
+                                            $evento = $arregloEvento[1];
+                                    }else
+                                    {
+                                        $evento = substr($alerta->Evento, 0, 21);
+                                    }
+                                    
+                                     
                                 ?>
+                                @if($idSubUsuario!="0" )
+                                    <?php 
+                                    if($alerta->client_id!=NULL)
+                                    {    
+                                        $client_id = $alerta->client_id;
+                                        $html_client_id = "ID Cliente: ".$client_id;
+                                    }
+                                    ?>
+                                    <p class="card-text"><b>{{$html_client_id}}</b></p>
+                                @endif
+                                
                                 <p class="{{$claseTitulo}}"><b>{{$evento}}</b></p>
                                 <?php
                                     $fechaHoraRegistro = date('d/m/Y H:i:s',strtotime($alerta->FechaHoraRegistro));
                                 ?>
                                 <p class="card-text"><b>{{$fechaHoraRegistro}}</b></p>
+                                @if($idSubUsuario=="0")
+                                    @if($alerta->EA1 =='' && $alerta->EA2=='' && $alerta->EA3=='')
+                                    <p class="card-text"><small><b>&nbsp;</b></small></p>
+                                    @else
+                                        <p class="card-text"><small><b>{{$alerta->EA1}}</b></small></p>
+                                        <p class="card-text"><small><b>{{$alerta->EA2}}</b></small></p>
+                                        <p class="card-text"><small><b>{{$alerta->EA3}}</b></small></p>
+                                    @endif
+                                @endif
 
                                 <?php
                                     if($mod==0)
@@ -280,7 +397,7 @@
                                         if($alerta->SiendoAtendida==1)
                                             $enlace = "";
                                         else
-                                        {    $enlace = "/xadmin/alerts/show"."/".$alerta->Secuencia;
+                                        {    $enlace = "/xadmin/alerts/show"."/".$alerta->Secuencia."/".$alerta->client_id;
 
                                             ?>
                                             <a href="" class="btn btn-outline-primary text-dark btn-sm"  onclick="window.open('{{$enlace}}','{{$alerta->Secuencia}}','width=900,height=900'); return false;">Ver alerta</a>
@@ -565,6 +682,41 @@
         }
     }
 
+
+    function muestraSwitches()
+    {
+        var buscarAmarillas = $("#switchAmarillas").is(':checked');
+        var buscarAtendiendose = $("#switchAtendiendose").is(':checked');
+        var buscarNaranjas = $("#switchNaranjas").is(':checked');
+        var buscarRojas = $("#switchRojas").is(':checked');
+
+        if(buscarAmarillas==true)
+        {
+            muestraAmarillas();
+        }else
+        {
+            if(buscarAtendiendose==true)
+            {
+                muestraAtendiendose();
+            }else
+            {
+                if(buscarNaranjas==true)
+                {
+                    muestraNaranjas();
+                }else
+                {
+                    if(buscarRojas==true)
+                    {    
+                        muestraRojas();
+                    }
+                }
+                
+            }
+            
+        }
+        
+    }
+
     
 
         function buscarAlertas()
@@ -574,6 +726,12 @@
                 console.log("Hola "+$("#aliasBuscar").val());
                 var parametros = $("#aliasBuscar").val();
                 var porProducto = $("#switchPorProducto").is(':checked');
+                var grupo = $("#selectGrupos").val();
+                if(grupo == undefined)
+                    grupo = 0;
+                console.log("Grupo: "+grupo);
+
+                var idSubUsuario = $("#idSubUsuario").val();
 
                 console.log('Por producto: '+porProducto);
                 if(parametros.length>0)
@@ -593,7 +751,8 @@
                     data: {
                         _token: CSRF_TOKEN,
                         parametros: parametros,
-                        porProducto: porProducto
+                        porProducto: porProducto,
+                        grupo: grupo
                         
                     
                     },
@@ -623,6 +782,11 @@
                         var contadorNaranja = 0;
                         var contadorRojo = 0;
                         var contadorAtendiendose = 0;
+
+                        $('#contadorAmarillas').text(contadorAmarillo);
+                        $('#contadorNaranjas').text(contadorNaranja);
+                        $('#contadorRojas').text(contadorRojo);
+                        $("#contadorAtendiendose").text(contadorAtendiendose);
                         
                         for(var i=0; i<len; i++)
                         {
@@ -630,7 +794,12 @@
                             var revisadoPor="";
                             $luzAlarma = "Imagenes/LuzAlarmaAmarilla.png";
                             
-
+                            if(response['data'][i].EstadoAlarma=='')
+                            {
+                                var clase = 'card text-center text-dark alert-custom  mb-3';
+                                var claseTitulo='card-title text-dark';
+                                contadorAmarillo++;
+                            }
 
 
                             if(response['data'][i].EstadoAlarma==0 && response['data'][i].SiendoAtendida!=1)
@@ -643,17 +812,17 @@
                            
                             if(response['data'][i].EstadoAlarma==1 && response['data'][i].SiendoAtendida!=1)
                             {
-                                var clase = 'card text-center text-dark alert-custom mb-3';
+                                var clase = 'card text-center text-dark bg-warning mb-3';
                                 var claseTitulo='card-title text-warning bg-dark';
                                 contadorNaranja++;
                             }
                                 
                             if(response['data'][i].EstadoAlarma==2 && response['data'][i].SiendoAtendida!=1)
                             {
-                                var clase = 'card text-center text-dark  alert-custom mb-3';
-                                var claseTitulo='card-title text-danger bg-dark';
+                                var clase = 'card text-center text-dark bg-warning mb-3';
+                                var claseTitulo='card-title text-dark';
                                 $luzAlarma = "Imagenes/LuzAlarmaRoja.png";
-                                contadorRojo++;
+                                contadorNaranja++;
                             }
                                 
                             if(response['data'][i].EstadoAlarma==5 && response['data'][i].SiendoAtendida!=1)
@@ -676,10 +845,15 @@
                             var vid = response['data'][i].VID;
                             var evento = response['data'][i].Evento;
                             var vid_2 = vid.substring(0,15);
-                            var evento_2 = evento.substring(0,21);
+                            var evento_2 = evento;//.substring(0,21);
                             var fecha = response['data'][i].FechaHoraRegistro;
                             var fechaHoraRegistro = fecha.slice(0,19);
                             var secuencia = response['data'][i].Secuencia;
+                            var client_id = response['data'][i].client_id;
+                            
+
+                            if(client_id == null)
+                                client_id = '';
 
                             var textoVentana = "";
                             var textoBoton = "";
@@ -687,19 +861,56 @@
                                 textoVentana = "";
                             else
                              {   
-                                 textoVentana = "window.open('/xadmin/alerts/show/"+secuencia+"','"+secuencia+"','width=900,height=900'); return false;";
+                                 textoVentana = "window.open('/xadmin/alerts/show/"+secuencia+"/"+client_id+"','"+secuencia+"','width=900,height=900'); return false;";
                                  textoBoton ='<a href="" class="btn btn-outline-primary text-dark btn-sm" onclick="'+textoVentana+'">Ver alerta</a>';
                              }
 
+                             var htm_client_id = '';
+                             var client_id = '----------';
+                             var ea1 = '';
+                             var ea2 = '';
+                             var ea3 = '';
+                             
+                             if(idSubUsuario!='0')
+                             {
+                                if(response['data'][i].client_id != null)
+                                {
+                                    client_id = response['data'][i].client_id;
+                                    htm_client_id = '<p class="card-text"><b>ID Cliente: '+client_id+'</b></p>';
+                                }else
+                                {
+                                    htm_client_id = '<p class="card-text"><b>'+client_id+'</b></p>';
+                                }
+
+                               
+                                arregloEvento = evento_2.split(" - ");
+                                if(arregloEvento.length==2)
+                                    evento_2 = arregloEvento[1];
+                                    
+                                
+                             }else
+                             {
+                                ea1 = response['data'][i].EA1;
+                                ea2 = response['data'][i].EA2;
+                                ea3 = response['data'][i].EA3;
+                                var evento_2 = evento.substring(0,21);
+                                if(ea1=='' && ea2=='' && ea3=='')
+                                {
+                                    ea1 = '&nbsp;';
+                                }
+                             }
+                                
+
                             
-                            $('#alertas').append('<div class="col-sm" id="tarjetasAlertas"><div class="'+clase+'" style="width: 15rem; margin-top: 20px;"><div class="card-body"><p class="card-text"><b>'+vid_2+'</b></p><p class="'+claseTitulo+'"><b>'+evento_2+'</b></p><p class="card-text"><b>'+fechaHoraRegistro+'</b></p>'+textoBoton+'<p class="card-text"><small class="text-dark"><b>'+revisadoPor+'<b></small></p></div></div></div>');
+                            $('#alertas').append('<div class="col-sm" id="tarjetasAlertas"><div class="'+clase+'" style="width: 15rem; margin-top: 20px;"><div class="card-body"><p class="card-text"><b>'+vid_2+'</b></p>'+htm_client_id+'<p class="'+claseTitulo+'"><b>'+evento_2+'</b></p><p class="card-text"><b>'+fechaHoraRegistro+'</b></p><p class="card-text"><small><b>'+ea1+'</b></small></p><p class="card-text"><small><b>'+ea2+'</b></small></p><p class="card-text"><small><b>'+ea3+'</b></small></p>'+textoBoton+'<p class="card-text"><small class="text-dark"><b>'+revisadoPor+'<b></small></p></div></div></div>');
                             $('#contadorAmarillas').text(contadorAmarillo);
                             $('#contadorNaranjas').text(contadorNaranja);
                             $('#contadorRojas').text(contadorRojo);
                             $("#contadorAtendiendose").text(contadorAtendiendose);
                         }
+                        
                         buscaAlertasInput();
-                        //response( data );
+                        
                     }
                 });
         }
@@ -710,12 +921,20 @@
             {
                 cargarFecha();
                 buscarAlertas();
-                
+                muestraSwitches();
             }, 20000);
 
             
         
         
+    });
+
+    $(document).ready(function(){
+        $("#selectGrupos").change(function(){
+            cargarFecha();
+            buscarAlertas();
+            muestraSwitches();
+        });
     });
 
     $(document).ready(function(){
@@ -782,6 +1001,8 @@
                 
             }
         }
+
+        
     });
 
 </script>
@@ -862,12 +1083,213 @@
         $("#contadorAtendiendose").text(contador);
         
     }
+
+
+    $("#switchAtendiendose").change(function(){
+
+        var table, tr, td, i, txtValue, contadorIniciados=0, contadorNoIniciados=0, filter;
+        $("#switchAmarillas").prop("checked", false);
+        $("#switchNaranjas").prop("checked", false);
+        $("#switchRojas").prop("checked", false);
+        
+    
+    
+
+        muestraAtendiendose();
+
+
+
+    });
+
+    function muestraAtendiendose()
+    {
+        var table, tr, td, i, txtValue, contador=0, contadorNoIniciados=0, filter, cards,divCuerpo,parrafos,p,texto, divRaiz;
+        var buscar = $("#switchAtendiendose").is(':checked');
+        table = document.getElementById("alertas");
+        cards = table.getElementsByTagName("div");
+
+        for (i = 0; i < cards.length; i++) 
+            cards[i].style.display = "";
+
+        for (i = 0; i < cards.length; i++) 
+        {
+            
+
+            if(cards[i].id==="tarjetasAlertas")
+            {
+                divRaiz = cards[i].getElementsByTagName("div");
+                console.log(divRaiz[0].getAttribute('class'));        
+                clase = divRaiz[0].getAttribute('class');
+                if(clase=="card text-center text-white bg-success mb-3")
+                    cards[i].style.display = "";
+                else
+                {
+                    if(buscar==true)
+                        cards[i].style.display = "none";
+                    else
+                    cards[i].style.display = "";
+                }
+            
+            }
+            
+        }
+    }
+
+    $("#switchAmarillas").change(function(){
+
+        
+        $("#switchAtendiendose").prop("checked", false);
+        $("#switchNaranjas").prop("checked", false);
+        $("#switchRojas").prop("checked", false);
+        
+        muestraAmarillas();
+        
+    });
+
+    function muestraAmarillas()
+    {
+        var table, tr, td, i, txtValue, contador=0, contadorNoIniciados=0, filter, cards,divCuerpo,parrafos,p,texto, divRaiz;
+        var buscar = $("#switchAmarillas").is(':checked');
+        table = document.getElementById("alertas");
+        cards = table.getElementsByTagName("div");
+
+        for (i = 0; i < cards.length; i++) 
+            cards[i].style.display = "";
+
+        for (i = 0; i < cards.length; i++) 
+        {
+            
+
+            if(cards[i].id==="tarjetasAlertas")
+            {
+                divRaiz = cards[i].getElementsByTagName("div");
+                console.log(divRaiz[0].getAttribute('class'));        
+                clase = divRaiz[0].getAttribute('class');
+                if(clase=="card text-center text-dark alert-custom  mb-3")
+                    cards[i].style.display = "";
+                else
+                {
+                    if(buscar==true)
+                        cards[i].style.display = "none";
+                    else
+                        cards[i].style.display = "";
+                }
+                
+            
+            }
+            
+        }
+
+
+    }
+
+
+    $("#switchNaranjas").change(function(){
+
+        console.log("Hola naranjas");
+    
+        var table, tr, td, i, txtValue, contador=0, filter;
+        
+        $("#switchAtendiendose").prop("checked", false);
+        $("#switchAmarillas").prop("checked", false);
+        $("#switchRojas").prop("checked", false);
+    
+        muestraNaranjas();
+
+    });
+
+    function muestraNaranjas()
+    {
+        var table, tr, td, i, txtValue, contador=0, contadorNoIniciados=0, filter, cards,divCuerpo,parrafos,p,texto, divRaiz;
+        var buscar = $("#switchNaranjas").is(':checked');
+        table = document.getElementById("alertas");
+        cards = table.getElementsByTagName("div");
+
+        for (i = 0; i < cards.length; i++) 
+            cards[i].style.display = "";
+
+        for (i = 0; i < cards.length; i++) 
+        {
+            
+
+            if(cards[i].id==="tarjetasAlertas")
+            {
+                divRaiz = cards[i].getElementsByTagName("div");
+                console.log(divRaiz[0].getAttribute('class'));        
+                clase = divRaiz[0].getAttribute('class');
+                if(clase=="card text-center text-dark bg-warning mb-3")
+                    cards[i].style.display = "";
+                else
+                {
+                    if(buscar==true)
+                        cards[i].style.display = "none";
+                    else
+                        cards[i].style.display = "";
+                }    
+            
+            }
+            
+        }
+    }
+
+    $("#switchRojas").change(function(){
+
+        console.log("Hola rojas");
+        
+        var table, tr, td, i, txtValue, contador=0, filter;
+        //input = document.getElementById("inputBuscarMonitoreo");
+        //filter = input.value.toUpperCase();
+        $("#switchAtendiendose").prop("checked", false);
+        $("#switchAmarillas").prop("checked", false);
+        $("#switchNaranjas").prop("checked", false);
+
+        muestraRojas();
+
+    });
+
+    function muestraRojas()
+    {
+        var table, tr, td, i, txtValue, contador=0, contadorNoIniciados=0, filter, cards,divCuerpo,parrafos,p,texto, divRaiz;
+        var buscar = $("#switchRojas").is(':checked');
+        table = document.getElementById("alertas");
+        cards = table.getElementsByTagName("div");
+
+        for (i = 0; i < cards.length; i++) 
+            cards[i].style.display = "";
+
+        for (i = 0; i < cards.length; i++) 
+        {
+            
+
+            if(cards[i].id==="tarjetasAlertas")
+            {
+                divRaiz = cards[i].getElementsByTagName("div");
+                console.log(divRaiz[0].getAttribute('class'));        
+                clase = divRaiz[0].getAttribute('class');
+                if(clase=="card text-center text-dark bg-danger mb-3")
+                    cards[i].style.display = "";
+                else
+                {
+                    if(buscar==true)
+                        cards[i].style.display = "none";
+                    else
+                        cards[i].style.display = "";
+                }
+                
+            
+            }
+            
+        }
+    }
+
+
+
 </script>
 
 <script type="text/javascript">
     function buscaAlertasInput()
     {
-        console.log('Hola');
+        console.log('Hola Esta se ejecuta');
         var input, filter, table, tr, td, i, txtValue;
         input = document.getElementById("buscadorAlertas");
         filterAll = input.value.toUpperCase();
@@ -915,6 +1337,8 @@
             
             
         }
+
+        muestraSwitches();
     }
 </script>
 

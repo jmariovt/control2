@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use XAdmin\Alert;
 use XAdmin\Exports\AlertsExportSeguimientoAlertas;
+use XAdmin\Exports\AlertsExportAlertasPorMonitorista;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 use DateTime;
 
@@ -26,15 +28,539 @@ class AlertController extends Controller
         $cia = "*";
         $mod = "0";
 
+        $gruposUsuario = array();
+
         $pendientes = DB::select('exec spAlertasConsultaPendientes');
         $cantidadPendientes = sizeof($pendientes);
 
-        $alertas = DB::select('exec spAlertasConsulta ?,?',array($tipo,$cia));
+        try {
+            Log::info('Mariolog EsMonitoreo user: '.Auth::user());
+            $usuario = Auth::guard('web')->user()->Usuario;
+            $clave = Auth::guard('web')->user()->Clave;
+        } catch (\Throwable $th) {
+            Log::info('Mariolog  EsMonitoreo subuser: '.Auth::guard('websubusers')->user());//Auth::user());
+            $usuario = Auth::guard('websubusers')->user()->Usuario; //Auth::user()->Usuario;
+            $clave = Auth::guard('websubusers')->user()->Clave; //Auth::user()->Clave;
+        }
+
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+       // $alertas = DB::select('exec spAlertasConsulta ?,?',array($tipo,$cia)); Se agregan subusuarios
+
+
+        $fechaAhora = Carbon::now();
+        $fechaAhora = $fechaAhora->format('d/m/Y H:i:s');
+        Log::info('Lentitud. Antes de consultar alertas'.$fechaAhora);
+        if($idSubUsuario=="0")
+       {
+           // ES UN USUARIO INTERNO - TODO IGUAL
+           $alertas = DB::select('exec spAlertasConsultaLv2 ?,?',array($tipo,$cia));
+
+       }else
+       {
+           // ES UN USUARIO EXTERNO (SUBUSUARIO)
+           Log::info('ES USUARIO EXTERNO');
+           if($idCategoria=="9")
+           {
+               // ES UN SUPERVISOR EXTERNO - PERFILES 4
+               
+               $alertas = DB::select('exec spAlertasConsultaExternoSupervisor ?,?',array($idSubUsuario,$idUsuario));
+
+               //select * from Grupo where IdUsuario=112433 AND
+               //IdGrupo IN (select idGrupo from SubUsuarioGrupo sug where  idUsuario=112433)
+               $gruposUsuario = DB::table('Grupo')->select('Grupo','IdGrupo')->where('IdUsuario','=','112433')->get();//->whereIn('IdGrupo',function($query){
+                //$query->select('idGrupo')->from('SubUsuarioGrupo')->where('idUsuario','=','112433');
+               //})->get();
+               
+               Log::info('ha cargado supervisor');
+
+           }else if($idCategoria=="10")
+           {
+               // ES UN OPERADOR EXTERNO (SUBUSUARIO) - PERFILES 4
+               $alertas = DB::select('exec spAlertasConsultaExterno ?,?',array($idSubUsuario,$idUsuario));
+               $gruposUsuario = DB::table('Grupo')->select('Grupo','IdGrupo')->where('IdUsuario','=','112433')->whereIn('IdGrupo',function($query) use($idSubUsuario){
+                $query->select('idGrupo')->from('SubUsuarioGrupo')->where('idUsuario','=','112433')->where('IdSubUsuario','=',$idSubUsuario);
+               })->get();
+               //return $gruposUsuario;
+               Log::info('ha cargado operador');
+           }
+       }
+
+       $fechaAhora = Carbon::now();
+        $fechaAhora = $fechaAhora->format('d/m/Y H:i:s');
+        Log::info('Lentitud. Despues de consultar alertas'.$fechaAhora);
+
+
+
         DB::update('exec spActualizarFalsasSiendoAtendida');
+        Log::info('ha actualziado');
+
+
+        return view('alerts.index', compact('alertas','mod','cantidadPendientes','gruposUsuario'));
+    }
+
+    public function alertasAgrupadasPorVehiculoAnterior()
+    {
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+        if($idCategoria=="9")
+        {
+            // ES UN SUPERVISOR EXTERNO - PERFILES 4
+            $alertas = DB::select('exec spAlertasConsultaExternoSupervisor ?,?',array($idSubUsuario,$idUsuario));
+            $gruposUsuario = DB::table('Grupo')->select('Grupo','IdGrupo')->where('IdUsuario','=','112433')->get();
+        }else if($idCategoria=="10")
+        {
+            // ES UN OPERADOR EXTERNO (SUBUSUARIO) - PERFILES 4
+           $alertas = DB::select('exec spAlertasConsultaExterno ?,?',array($idSubUsuario,$idUsuario));
+           $gruposUsuario = DB::table('Grupo')->select('Grupo','IdGrupo')->where('IdUsuario','=','112433')->whereIn('IdGrupo',function($query) use($idSubUsuario){
+            $query->select('idGrupo')->from('SubUsuarioGrupo')->where('idUsuario','=','112433')->where('IdSubUsuario','=',$idSubUsuario);
+           })->get();
+         
+        }
+        
+        
+        $alertasVehiculo = array();
+        $alertasVehiculoTotales = array();
+        foreach($alertas as $val) {
+            $alertasVehiculo[$val->VID][] = $val;
+            
+        }
+        $totalContador = 0;
+        $totalVerdes = 0;
+        $totalAmarillas = 0;
+        $totalNaranjas = 0;
+        $totalRojas = 0;
+
+        foreach ($alertasVehiculo as $key => $alertaVehiculo) {
+            $contador = 0;
+            $cantidadVerdes = 0;
+            $cantidadAmarillas = 0;
+            $cantidadNaranjas = 0;
+            $cantidadRojas = 0;
+            foreach ($alertaVehiculo as $key1 => $value) {
+                $contador++;
+                $totalContador++;
+                if($value->EstadoAlarma=='')
+                {
+                    $cantidadAmarillas++;
+                    $totalAmarillas++;
+                }
+                
+                if($value->EstadoAlarma==0)
+                {
+                    $cantidadAmarillas++;
+                    $totalAmarillas++;
+                }
+                    
+                
+                if($value->EstadoAlarma==1)
+                {
+                    $cantidadAmarillas++;
+                    $totalAmarillas++;
+                }
+                    
+                if($value->EstadoAlarma==2)
+                {
+                    $cantidadNaranjas++;
+                    $totalNaranjas++;
+                }
+                    
+                if($value->EstadoAlarma==5)
+                {
+                    $cantidadRojas++;
+                    $totalRojas++;
+                }
+
+                if($value->SiendoAtendida==1)
+                {
+                    $cantidadVerdes++;
+                    $totalVerdes++;
+                }
+            }
+            $alertasVehiculoTotales[$key]['totales'] = $contador;
+            $alertasVehiculoTotales[$key]['verdes'] = $cantidadVerdes;
+            $alertasVehiculoTotales[$key]['amarillas'] = $cantidadAmarillas;
+            $alertasVehiculoTotales[$key]['naranjas'] = $cantidadNaranjas;
+            $alertasVehiculoTotales[$key]['rojas'] = $cantidadRojas;
+        }
+
+
+        
+
+        
+        $tabla = 'MOTIVORECLAMOCONTROL';
+        $comboMotivoAlerta = DB::select('exec spLlenarCombo ?,?',array($tabla,'3'));
+            
+        $fechaAccion = now()->format('d/m/Y H:i:s');
+
+
+        //return $alertasVehiculo;
+        return view('alerts.alertasAgrupadasPorVehiculo',compact('alertasVehiculo','fechaAccion','comboMotivoAlerta','alertasVehiculoTotales','totalContador','totalAmarillas','totalVerdes','totalNaranjas','totalRojas'));
+    }
+
+    public function alertasAgrupadasPorVehiculo()
+    {
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+        if($idCategoria=="9")
+        {
+            // ES UN SUPERVISOR EXTERNO - PERFILES 4
+            $alertas = DB::select('exec spAlertasConsultaExternoSupervisor ?,?',array($idSubUsuario,$idUsuario));
+            $gruposUsuario = DB::table('Grupo')->select('Grupo','IdGrupo')->where('IdUsuario','=','112433')->get();
+        }else if($idCategoria=="10")
+        {
+            // ES UN OPERADOR EXTERNO (SUBUSUARIO) - PERFILES 4
+           $alertas = DB::select('exec spAlertasConsultaExterno ?,?',array($idSubUsuario,$idUsuario));
+           $gruposUsuario = DB::table('Grupo')->select('Grupo','IdGrupo')->where('IdUsuario','=','112433')->whereIn('IdGrupo',function($query) use($idSubUsuario){
+            $query->select('idGrupo')->from('SubUsuarioGrupo')->where('idUsuario','=','112433')->where('IdSubUsuario','=',$idSubUsuario);
+           })->get();
+         
+        }
+        
+        
+        $alertasVehiculo = array();
+        $alertasVehiculoTotales = array();
+        foreach($alertas as $val) {
+            $alertasVehiculo[$val->VID][] = $val;
+            
+        }
+        $totalContador = 0;
+        $totalVerdes = 0;
+        $totalAmarillas = 0;
+        $totalNaranjas = 0;
+        $totalRojas = 0;
+        $totalVehiculos = 0;
+
+        foreach ($alertasVehiculo as $key => $alertaVehiculo) {
+            $totalVehiculos++;
+            $contador = 0;
+            $cantidadVerdes = 0;
+            $cantidadAmarillas = 0;
+            $cantidadNaranjas = 0;
+            $cantidadRojas = 0;
+            foreach ($alertaVehiculo as $key1 => $value) {
+                $contador++;
+                $totalContador++;
+                if($value->EstadoAlarma=='')
+                {
+                    $cantidadAmarillas++;
+                    $totalAmarillas++;
+                }
+                
+                if($value->EstadoAlarma==0)
+                {
+                    $cantidadAmarillas++;
+                    $totalAmarillas++;
+                }
+                    
+                
+                if($value->EstadoAlarma==1)
+                {
+                    $cantidadAmarillas++;
+                    $totalAmarillas++;
+                }
+                    
+                if($value->EstadoAlarma==2)
+                {
+                    $cantidadNaranjas++;
+                    $totalNaranjas++;
+                }
+                    
+                if($value->EstadoAlarma==5)
+                {
+                    $cantidadRojas++;
+                    $totalRojas++;
+                }
+
+                if($value->SiendoAtendida==1)
+                {
+                    $cantidadVerdes++;
+                    $totalVerdes++;
+                }
+            }
+            $alertasVehiculoTotales[$key]['totales'] = $contador;
+            $alertasVehiculoTotales[$key]['verdes'] = $cantidadVerdes;
+            $alertasVehiculoTotales[$key]['amarillas'] = $cantidadAmarillas;
+            $alertasVehiculoTotales[$key]['naranjas'] = $cantidadNaranjas;
+            $alertasVehiculoTotales[$key]['rojas'] = $cantidadRojas;
+        }
+
+
+        
+
+        
+        $tabla = 'MOTIVORECLAMOCONTROL';
+        $comboMotivoAlerta = DB::select('exec spLlenarCombo ?,?',array($tabla,'3'));
+            
+        $fechaAccion = now()->format('d/m/Y H:i:s');
+
+
+        //return $alertasVehiculo;
+        return view('alerts.alertasAgrupadasPorVehiculo',compact('alertasVehiculo','fechaAccion','comboMotivoAlerta','alertasVehiculoTotales','totalContador','totalAmarillas','totalVerdes','totalNaranjas','totalRojas','gruposUsuario','totalVehiculos'));
+    }
+
+    public function alertasAgrupadasPorVehiculoPost(Request $request)
+    {
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+        $grupo = $request->grupo;
+
+        /*if($idCategoria=="9")
+        {
+            // ES UN SUPERVISOR EXTERNO - PERFILES 4
+            $alertas = DB::select('exec spAlertasConsultaExternoSupervisor ?,?',array($idSubUsuario,$idUsuario));
+        }else if($idCategoria=="10")
+        {
+            // ES UN OPERADOR EXTERNO (SUBUSUARIO) - PERFILES 4
+           $alertas = DB::select('exec spAlertasConsultaExterno ?,?',array($idSubUsuario,$idUsuario));
+         
+        }*/
+
+        if($grupo=="0")
+        {
+            // ES UN USUARIO EXTERNO (SUBUSUARIO)
+            if($idCategoria=="9")
+            {
+                // ES UN SUPERVISOR EXTERNO - PERFILES 4
+                $alertas = DB::select('exec spAlertasConsultaExternoSupervisor ?,?',array($idSubUsuario,$idUsuario));
+
+            }else if($idCategoria=="10")
+            {
+                // ES UN OPERADOR EXTERNO (SUBUSUARIO) - PERFILES 4
+                $alertas = DB::select('exec spAlertasConsultaExterno ?,?',array($idSubUsuario,$idUsuario));
+            }
+        }else
+        {
+            if($idCategoria=="9")
+            {
+                $alertas = DB::select('exec spAlertasConsultaPorGrupoSupervisor ?',array($grupo));
+            }else
+            {
+                $alertas = DB::select('exec spAlertasConsultaPorGrupoOperador ?,?',array($grupo,$idSubUsuario));
+            }
+            
+        }
 
 
 
-        return view('alerts.index', compact('alertas','mod','cantidadPendientes'));
+
+        
+        
+        $alertasVehiculo = array();
+        foreach($alertas as $val) {
+            $alertasVehiculo[$val->VID][] = $val;
+            
+        }
+
+        $totalContador = 0;
+        $totalVerdes = 0;
+        $totalAmarillas = 0;
+        $totalNaranjas = 0;
+        $totalRojas = 0;
+
+        foreach ($alertasVehiculo as $key => $alertaVehiculo) {
+            $contador = 0;
+            $cantidadVerdes = 0;
+            $cantidadAmarillas = 0;
+            $cantidadNaranjas = 0;
+            $cantidadRojas = 0;
+            foreach ($alertaVehiculo as $key1 => $value) {
+                $contador++;
+                $totalContador++;
+                if($value->EstadoAlarma=='')
+                {
+                    $cantidadAmarillas++;
+                    $totalAmarillas++;
+                }
+                
+                if($value->EstadoAlarma==0)
+                {
+                    $cantidadAmarillas++;
+                    $totalAmarillas++;
+                }
+                    
+                
+                if($value->EstadoAlarma==1)
+                {
+                    $cantidadAmarillas++;
+                    $totalAmarillas++;
+                }
+                    
+                if($value->EstadoAlarma==2)
+                {
+                    $cantidadNaranjas++;
+                    $totalNaranjas++;
+                }
+                    
+                if($value->EstadoAlarma==5)
+                {
+                    $cantidadRojas++;
+                    $totalRojas++;
+                }
+
+                if($value->SiendoAtendida==1)
+                {
+                    $cantidadVerdes++;
+                    $totalVerdes++;
+                }
+            }
+            $alertasVehiculoTotales[$key]['totales'] = $contador;
+            $alertasVehiculoTotales[$key]['verdes'] = $cantidadVerdes;
+            $alertasVehiculoTotales[$key]['amarillas'] = $cantidadAmarillas;
+            $alertasVehiculoTotales[$key]['naranjas'] = $cantidadNaranjas;
+            $alertasVehiculoTotales[$key]['rojas'] = $cantidadRojas;
+        }
+
+        
+        
+
+        $response['alertasVehiculo'] = $alertasVehiculo;
+        $response['alertasVehiculoTotales'] = $alertasVehiculoTotales;
+        $response['alertasTotales'] = [$totalContador,$totalVerdes, $totalAmarillas, $totalNaranjas, $totalRojas];
+        
+        return response()->json($response);
+
+        //return view('alerts.alertasAgrupadasPorVehiculo',compact('alertasVehiculo','fechaAccion','comboMotivoAlerta'));
+    }
+
+
+    public function storeGroup(Request $request)
+    {
+        //return $request;
+
+
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+        //$usuario = Auth::user()->Usuario;
+        $nombreUsuario = session('nombre');//Auth::user()->Nombre;
+
+        try {
+            //Log::info('Mariolog EsMonitoreo user: '.Auth::user());
+            $usuario = Auth::guard('web')->user()->Usuario;
+            $clave = Auth::guard('web')->user()->Clave;
+        } catch (\Throwable $th) {
+            //Log::info('Mariolog  EsMonitoreo subuser: '.Auth::guard('websubusers')->user());//Auth::user());
+            $usuario = session('usuario');//Auth::guard('websubusers')->user()->Usuario; //Auth::user()->Usuario;
+            $clave = Auth::guard('websubusers')->user()->Clave; //Auth::user()->Clave;
+        }
+
+        $gestion = "";
+
+        if($request->input("gestionRealizada"))
+            $gestion = $request->input("gestionRealizada");
+        else
+            $gestion = "";
+        
+        if($gestion=="null")
+            $gestion = "";
+
+        $fechaAccion = $request->fechaAccion;
+        $cambiaEstadoAlarma = $request->input("comboCambiarEstado");
+        $motivoAlerta = $request->input("comboMotivoAlerta");
+        $vehiculoSecuencia = $request->vehiculoSecuencias;
+
+        $alertaRepetida = $request->has("chkAlertaRepetida");
+        $datosIncorrectos = $request->has("chkDatosIncorrectos");
+
+        if($motivoAlerta == null)
+            $motivoAlerta='';
+        
+        //if($tipoDispositivo == null)
+        //    $tipoDispositivo = '';
+
+        
+            if($request->has("chkDetenido"))
+            {
+                $gestion = $gestion . "\DETENCION";
+            }
+            if($request->has("chkLlamada"))
+            {
+                $gestion = $gestion . "\LLAMADA";
+            }
+            if($request->has("ckhNovedad"))
+            {
+                $gestion = $gestion . "\NOVEDAD";
+            }
+        
+
+        $enviarCaso = $request->has("chkEnviarCaso");
+
+        if($enviarCaso)
+            $enviarCaso = "True";
+        else
+            $enviarCaso = "False";
+        
+        if($alertaRepetida)
+            $alertaRepetida = "True";
+        else
+            $alertaRepetida = "False";
+
+        if($datosIncorrectos)
+            $datosIncorrectos = "True";
+        else
+            $datosIncorrectos = "False";
+
+
+
+        $arregloVehiculoSecuencia = explode(";",$vehiculoSecuencia);
+
+        $numeroSecuencias = count($arregloVehiculoSecuencia)-1;
+        
+        Log::info('Mariolog secuencias: '.$vehiculoSecuencia);
+        
+        for ($i=1; $i<=$numeroSecuencias; $i++)
+        {
+            $secuencia = $arregloVehiculoSecuencia[$i];
+            Log::info('Mariolog secuencia: '.$secuencia);
+
+        
+
+
+            $alerta = DB::select('exec spAlertaSecuenciaConsultarLv ?',array($secuencia));
+            //IdMonitoreo	IdAlerta	IdActivo	VID	         NivelBateria	TipoMonitoreo	FechaHoraInicio	           FechaHoraFin         	Tipo	Nombre	         NombreAlerta	FechaHoraOcurrencia	FechaHoraRegistro	DireccionAlerta	Producto	TipoDispositivo	NombreCompleto	Placa	CodSysHunter	Marca	Modelo	Direccion	Convencional	Celular	Email	chasis	motor	id_estado	descripcion_estado	Latitud	Longitud
+            //19531	        437294	     35694	   1002075591   NO DISPONIBLE	2	             2016-01-01 08:00:00.000	2020-12-31 23:50:00.000	ROJO	ALERTA DE IMPACTO	Evento	1969-12-31 19:01:19.000	2016-02-04 10:00:08.080	De los Cedros,Quito,Quito	HUNTER GPS HMT	CALAMP LMU2720	PATRICIO JOHNSON LOPEZ 	PCL7336	1002075591	TOYOTA	BB 4RUNNER LTD TA 4.0 5P 4X4				hmonitoreouio@gmail.com	NO DISPONIBLE	NO DISPONIBLE	NO DISPONIBLE	NO DISPONIBLE	-0,1230728	-78,48123
+            
+            $fechaOcurrencia = $alerta[0]->FechaHoraOcurrencia;
+            list($fecha,$tiempo) = explode(" ",$fechaOcurrencia);
+            list($anio,$mes,$dia) = explode("-",$fecha);
+            list($hora,$minuto,$segundo) = explode(":",$tiempo);
+            $timestampFechaOcurrencia = mktime($hora,$minuto,$segundo,$mes,$dia,$anio);
+            $fechaOcurrencia = date("d/m/Y H:i:s",$timestampFechaOcurrencia);
+
+            $fechaRegistro = $alerta[0]->FechaHoraRegistro;
+            list($fecha,$tiempo) = explode(" ",$fechaRegistro);
+            list($anio,$mes,$dia) = explode("-",$fecha);
+            list($hora,$minuto,$segundo) = explode(":",$tiempo);
+            $timestampFechaRegistro = mktime($hora,$minuto,$segundo,$mes,$dia,$anio);
+            $fechaRegistro = date("d/m/Y H:i:s",$timestampFechaRegistro);
+
+            $fechaGestion = $request->input('fechaAccion');
+            //return $fechaGestion; 03/03/2022 14:31:30
+            list($fecha,$tiempo) = explode(" ",$fechaGestion);
+            list($dia,$mes,$anio) = explode("/",$fecha);
+            list($hora,$minuto,$segundo) = explode(":",$tiempo);
+            $timestampFechaGestion = mktime($hora,$minuto,$segundo,$mes,$dia,$anio);
+            $fechaGestion = date("Ymd H:i:s",$timestampFechaGestion);
+
+
+            DB::insert('exec spAlertaSeguimientoIngresarLv ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?',array($alerta[0]->IdActivo, $alerta[0]->IdMonitoreo, $alerta[0]->IdAlerta, $alerta[0]->NombreCompleto, $alerta[0]->Placa, $alerta[0]->Marca, $alerta[0]->Modelo, $alerta[0]->Producto, $alerta[0]->TipoDispositivo, $alerta[0]->Nombre, $alerta[0]->NombreAlerta, $alerta[0]->Tipo, $cambiaEstadoAlarma, $fechaOcurrencia, $fechaGestion, $usuario, $nombreUsuario, $gestion, $enviarCaso, $secuencia, $alerta[0]->VID, $alerta[0]->CodSysHunter, $alerta[0]->chasis, $alerta[0]->motor, $alerta[0]->id_estado, $alerta[0]->descripcion_estado, $fechaRegistro, $motivoAlerta, $alertaRepetida, $datosIncorrectos));
+                
+        }
+
+        return redirect()->route('alertasAgrupadasPorVehiculo')->with('status','Alertas gestionadas con éxito');
+
+
+
     }
 
     public function indexCompany($cia)
@@ -46,7 +572,7 @@ class AlertController extends Controller
         $pendientes = DB::select('exec spAlertasConsultaPendientes');
         $cantidadPendientes = sizeof($pendientes);
 
-        $alertas = DB::select('exec spAlertasConsulta ?,?',array($tipo,$cia));
+        $alertas = DB::select('exec spAlertasConsultaLv2 ?,?',array($tipo,$cia));
         DB::update('SET NOCOUNT ON ; exec spActualizarFalsasSiendoAtendida');
 
 
@@ -63,7 +589,45 @@ class AlertController extends Controller
         //$pendientes = DB::select('exec spAlertasConsultaPendientes');
         //$cantidadPendientes = sizeof($pendientes);
 
-        $alertas = DB::select('exec spAlertasConsulta ?,?',array($tipo,$idEntidad));
+        try {
+            //Log::info('Mariolog EsMonitoreo user: '.Auth::user());
+            $usuario = Auth::guard('web')->user()->Usuario;
+            $clave = Auth::guard('web')->user()->Clave;
+        } catch (\Throwable $th) {
+            //Log::info('Mariolog  EsMonitoreo subuser: '.Auth::guard('websubusers')->user());//Auth::user());
+            $usuario = Auth::guard('websubusers')->user()->Usuario; //Auth::user()->Usuario;
+            $clave = Auth::guard('websubusers')->user()->Clave; //Auth::user()->Clave;
+        }
+
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+
+
+        //$alertas = DB::select('exec spAlertasConsulta ?,?',array($tipo,$idEntidad));
+
+        if($idSubUsuario=="0")
+       {
+           // ES UN USUARIO INTERNO - TODO IGUAL
+           $alertas = DB::select('exec spAlertasConsultaLv2 ?,?',array($tipo,$cia));
+
+       }else
+       {
+           // ES UN USUARIO EXTERNO (SUBUSUARIO)
+           if($idCategoria=="9")
+           {
+               // ES UN SUPERVISOR EXTERNO - PERFILES 4
+               $alertas = DB::select('exec spAlertasConsultaExternoSupervisor ?,?',array($idSubUsuario,$idSubUsuario));
+
+           }else if($idCategoria=="10")
+           {
+               // ES UN OPERADOR EXTERNO (SUBUSUARIO) - PERFILES 4
+               $alertas = DB::select('exec spAlertasConsultaExterno ?,?',array($idSubUsuario,$idUsuario));
+           }
+       }
+        
+        
         DB::update('SET NOCOUNT ON ; exec spActualizarFalsasSiendoAtendida');
         $response['data'] = $alertas;
 
@@ -122,6 +686,9 @@ class AlertController extends Controller
     {
 
 
+        //$request->validate([
+        //    'gestionRealizada' => 'required|alpha_num'
+        //]);
        
 
 
@@ -145,8 +712,18 @@ class AlertController extends Controller
         $fechaIngreso = $request->input("fechaOcurrencia");
         $fechaAccion = $request->input('fechaAccion');
 
-        $usuario = Auth::user()->Usuario;
-        $nombreUsuario = Auth::user()->Nombre;
+        //$usuario = Auth::user()->Usuario;
+        $nombreUsuario = session('nombre');//Auth::user()->Nombre;
+
+        try {
+            //Log::info('Mariolog EsMonitoreo user: '.Auth::user());
+            $usuario = Auth::guard('web')->user()->Usuario;
+            $clave = Auth::guard('web')->user()->Clave;
+        } catch (\Throwable $th) {
+            //Log::info('Mariolog  EsMonitoreo subuser: '.Auth::guard('websubusers')->user());//Auth::user());
+            $usuario = session('usuario');//Auth::guard('websubusers')->user()->Usuario; //Auth::user()->Usuario;
+            $clave = Auth::guard('websubusers')->user()->Clave; //Auth::user()->Clave;
+        }
 
         $gestion = "";
 
@@ -299,7 +876,7 @@ class AlertController extends Controller
             {
                 if($request->has('CheckSecuencia_'.$secuenciaxatender->Secuencia))
                 {
-                    DB::insert('exec spAlertaSeguimientoIngresarLv ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?',array($IdActivo, $IdMonitoreo, $IdAlerta, $nombreCliente, $placa, $marca, $modelo, $producto, $tipoDispositivo, $alerta, $tipoAlerta, $estadoAlarma, $cambiaEstadoAlarma, $fechaOcurrencia, $fechaGestion, $usuario,$nombreUsuario, $gestion, 'False', $secuenciaxatender->Secuencia, $vid, $codSysHunter, $chasis, $motor, $id_estado, $descripcion_estado, $fechaRegistro, $motivoAlerta, $alertaRepetida, $datosIncorrectos));
+                    DB::insert('exec spAlertaSeguimientoIngresarLv ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?',array($IdActivo, $IdMonitoreo, $IdAlerta, $nombreCliente, $placa, $marca, $modelo, $producto, $tipoDispositivo, $alerta, $tipoAlerta, $estadoAlarma, $cambiaEstadoAlarma, $secuenciaxatender->FechaOcurrencia, $fechaGestion, $usuario,$nombreUsuario, $gestion, 'False', $secuenciaxatender->Secuencia, $vid, $codSysHunter, $chasis, $motor, $id_estado, $descripcion_estado, $fechaRegistro, $motivoAlerta, $alertaRepetida, $datosIncorrectos));
             
                 }     
                
@@ -322,6 +899,8 @@ class AlertController extends Controller
                 DB::update('exec spActualizarAlertaAtendida ?,?',array($secuenciaxatender2->Secuencia,0));
                 DB::update('exec spActualizarUsuarioRevisandoAlerta ?,?',array($secuenciaxatender2->Secuencia,""));
             }
+            $error = 'COMUNICAR AL AREA ENCARGADA: '.$th->getMessage();
+            return redirect()->back()->withErrors($error);
             
         }
 
@@ -356,10 +935,25 @@ class AlertController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($secuencia)
+    public function show($secuencia,$client_id = '')
     {
 
-        $usuario = Auth::user()->Usuario;
+        //$usuario = Auth::user()->Usuario;
+        try {
+            //Log::info('Mariolog EsMonitoreo user: '.Auth::user());
+            $usuario = Auth::guard('web')->user()->Usuario;
+            $clave = Auth::guard('web')->user()->Clave;
+        } catch (\Throwable $th) {
+            //Log::info('Mariolog  EsMonitoreo subuser: '.Auth::guard('websubusers')->user());//Auth::user());
+            $usuario = session('usuario');//$usuario = Auth::guard('websubusers')->user()->Usuario; //Auth::user()->Usuario;
+            $clave = Auth::guard('websubusers')->user()->Clave; //Auth::user()->Clave;
+        }
+
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+        //return $client_id;
 
         if($secuencia!="0")
         {
@@ -370,12 +964,16 @@ class AlertController extends Controller
         
             $alertaTemp = DB::select('exec spAlertaSecuenciaConsultarLv ?',array($secuencia));
             
-
+            //Log::info('entra a show');
             DB::update('exec spActualizarAlertaAtendida ?,?',array($secuencia,1));
             DB::update('exec spActualizarUsuarioRevisandoAlerta ?,?',array($secuencia,$usuario));
+            //Log::info('en show luego de actualizar');
 
+            $idUsuario = session('idUsuario');
+            $idSubUsuario = session('idSubUsuario');
+            $idCategoria = session('idCategoria');
             $alerta = DB::select('exec spAlertaSecuenciaConsultarLv ?',array($secuencia));
-            //IdMonitoreo	IdAlerta	IdActivo	VID	         NivelBateria	TipoMonitoreo	FechaHoraInicio	           FechaHoraFin	Tipo	Nombre	NombreAlerta	FechaHoraOcurrencia	FechaHoraRegistro	DireccionAlerta	Producto	TipoDispositivo	NombreCompleto	Placa	CodSysHunter	Marca	Modelo	Direccion	Convencional	Celular	Email	chasis	motor	id_estado	descripcion_estado	Latitud	Longitud
+            //IdMonitoreo	IdAlerta	IdActivo	VID	         NivelBateria	TipoMonitoreo	FechaHoraInicio	           FechaHoraFin         	Tipo	Nombre	         NombreAlerta	FechaHoraOcurrencia	FechaHoraRegistro	DireccionAlerta	Producto	TipoDispositivo	NombreCompleto	Placa	CodSysHunter	Marca	Modelo	Direccion	Convencional	Celular	Email	chasis	motor	id_estado	descripcion_estado	Latitud	Longitud
             //19531	        437294	     35694	   1002075591   NO DISPONIBLE	2	             2016-01-01 08:00:00.000	2020-12-31 23:50:00.000	ROJO	ALERTA DE IMPACTO	Evento	1969-12-31 19:01:19.000	2016-02-04 10:00:08.080	De los Cedros,Quito,Quito	HUNTER GPS HMT	CALAMP LMU2720	PATRICIO JOHNSON LOPEZ 	PCL7336	1002075591	TOYOTA	BB 4RUNNER LTD TA 4.0 5P 4X4				hmonitoreouio@gmail.com	NO DISPONIBLE	NO DISPONIBLE	NO DISPONIBLE	NO DISPONIBLE	-0,1230728	-78,48123
 
             
@@ -389,9 +987,46 @@ class AlertController extends Controller
 
             $tabla = 'MOTIVORECLAMOCONTROL';
             $mostrarChecksGestion = true;
+            $paramtroMotivoAlertas = '3';
+
+            
+
+            if($idSubUsuario!="0")
+            {
+                //$paramtroMotivoAlertas = '4';
+                $nombreDeAlerta = $alerta[0]->Nombre;
+                //switch por nombre de alerta
+                switch (true) {
+                    case strpos($nombreDeAlerta,'VISITA MAS TARDE')!==false:
+                        $paramtroMotivoAlertas = '5';
+                        break;
+                    case strpos($nombreDeAlerta,'ENTREGA FUERA DE RANGO')!==false:
+                        $paramtroMotivoAlertas = '6';
+                        break;
+                    case strpos($nombreDeAlerta,'PARADA NO PLAN')!==false:
+                        $paramtroMotivoAlertas = '7';
+                        break;
+                    case strpos($nombreDeAlerta,'ENCUESTA NEGATIVA')!==false:
+                        $paramtroMotivoAlertas = '8';
+                        break;
+                    case strpos($nombreDeAlerta,'TIEMPO EXCEDIDO EN DEPOT')!==false:
+                        $paramtroMotivoAlertas = '9';
+                        break;
+                    case strpos($nombreDeAlerta,'DEMORA EN PRIMERA VISITA')!==false:
+                        $paramtroMotivoAlertas = '10';
+                        break;
+                    case strpos($nombreDeAlerta,'EXCESO TIEMPO DE VIAJE')!==false:
+                        $paramtroMotivoAlertas = '11';
+                        break;
+                    default:
+                        $paramtroMotivoAlertas = '4';
+                        break;
+                }
+            }
+
             if(($alerta[0]->Producto)=='')
             {
-                $comboMotivoAlerta = DB::select('exec spLlenarCombo ?,?',array($tabla,'3'));
+                $comboMotivoAlerta = DB::select('exec spLlenarCombo ?,?',array($tabla,$paramtroMotivoAlertas));
             }else
             {
                 $esAlertaBotonPanico = DB::select('select dbo.EsAlertaBotonPanico (?,?) AS abp',array($alerta[0]->IdAlerta,$alerta[0]->IdMonitoreo))[0]->abp;
@@ -416,8 +1051,14 @@ class AlertController extends Controller
             
             }
             //return response()->json($alerta);
-             $SecuenciasXAtender = DB::select('exec spAlertasXAtender ?,?,?,?',array($alerta[0]->IdActivo, $alerta[0]->IdMonitoreo, $alerta[0]->IdAlerta,$secuencia));
-            
+         
+            $SecuenciasXAtender = array();
+            if($idSubUsuario=="0")
+            {
+                $SecuenciasXAtender = DB::select('exec spAlertasXAtender ?,?,?,?',array($alerta[0]->IdActivo, $alerta[0]->IdMonitoreo, $alerta[0]->IdAlerta,$secuencia));
+            }else{
+                $SecuenciasXAtender = DB::select('exec spAlertasXAtenderExterno ?,?,?,?,?',array($alerta[0]->IdActivo, $alerta[0]->IdMonitoreo, $alerta[0]->IdAlerta,$secuencia,$client_id));
+            }
             $secuenciaxatenderSecuencia = "";
             foreach($SecuenciasXAtender as $secuenciaxatender)
             {
@@ -441,6 +1082,14 @@ class AlertController extends Controller
             $fechaAccion = now()->format('d/m/Y H:i:s');
             //$newDate = date('Y-m-d',$time);
             $alerta = $alerta[0];
+            /*$infoAgregadaJson = $alerta->informacion_agregada;
+            $infoAgregada1 = json_decode($infoAgregadaJson, true);
+            $productos = $infoAgregada1['WATCHFOXPDU']['products'];
+            return sizeof($productos);
+            foreach($productos as $producto)
+            {
+                return $producto;
+            }*/
             return view('alerts.show',compact('alerta','infoAdicional','secuencia','fechaAccion','comboMotivoAlerta','mostrarChecksGestion','consultaPlanDeAccion','consultaUltimasGestiones','mod','SecuenciasXAtender','alertaSiendoAtendida'));
             //return response()->json($alerta);
             //return response()->json($infoAdicional);
@@ -523,21 +1172,33 @@ class AlertController extends Controller
     public function updateAtendidoPor(Request $request)
     {
         $secuencia = $request->Secuencia;
-        DB::update('exec spActualizarAlertaAtendida ?,?',array($secuencia,0));
-        DB::update('exec spActualizarUsuarioRevisandoAlerta',array($secuencia,""));
+        $atendidoPor = "";
+        $valor = $request->Valor;
+        if($valor==1)
+            $atendidoPor = session('usuario');
+        
+        try {
+            DB::update('exec spActualizarAlertaAtendida ?,?',array($secuencia,$valor));
+             DB::update('exec spActualizarUsuarioRevisandoAlerta ?,?',array($secuencia,$atendidoPor));
 
-        $alerta = DB::select('exec spAlertaSecuenciaConsultar ?',array($secuencia));
+            $alerta = DB::select('exec spAlertaSecuenciaConsultar ?',array($secuencia));
 
-        $SecuenciasXAtender = DB::select('exec spAlertasXAtender ?,?,?,?',array($alerta[0]->$IdActivo, $alerta[0]->$IdMonitoreo, $alerta[0]->$IdAlerta,$secuencia));
-        foreach($SecuenciasXAtender as $secuenciaxatender)
-        {
-            DB::update('exec spActualizarAlertaAtendida ?,?',array($secuenciaxatender->Secuencia,0));
-            DB::update('exec spActualizarUsuarioRevisandoAlerta',array($secuenciaxatender->Secuencia,""));
+            $SecuenciasXAtender = DB::select('exec spAlertasXAtender ?,?,?,?',array($alerta[0]->IdActivo, $alerta[0]->IdMonitoreo, $alerta[0]->IdAlerta,$secuencia));
+            foreach($SecuenciasXAtender as $secuenciaxatender)
+            {
+                DB::update('exec spActualizarAlertaAtendida ?,?',array($secuenciaxatender->Secuencia,$valor));
+                DB::update('exec spActualizarUsuarioRevisandoAlerta ?,?',array($secuenciaxatender->Secuencia,$atendidoPor));
+            }
+            $response['data'] = $alerta;
+        } catch (\Throwable $th) {
+            $response['data'] = $th->getMessage();
         }
-        $response['data'] = $alerta;
+        
 
         return response()->json($response);
     }
+
+    
 
     /**
      * Remove the specified resource from storage.
@@ -595,9 +1256,24 @@ class AlertController extends Controller
         $tipo = "1";
         $parametros = $request->parametros;
         $porProducto = $request->porProducto;
+        $grupo = $request->grupo;
 
         if($porProducto=='true')
             $tipo = "2";
+
+        try {
+            //Log::info('Mariolog EsMonitoreo user: '.Auth::user());
+            $usuario = Auth::guard('web')->user()->Usuario;
+            $clave = Auth::guard('web')->user()->Clave;
+        } catch (\Throwable $th) {
+            //Log::info('Mariolog  EsMonitoreo subuser: '.Auth::guard('websubusers')->user());//Auth::user());
+            $usuario = Auth::guard('websubusers')->user()->Usuario; //Auth::user()->Usuario;
+            $clave = Auth::guard('websubusers')->user()->Clave; //Auth::user()->Clave;
+        }
+    
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
 
         
         
@@ -609,8 +1285,41 @@ class AlertController extends Controller
         if($parametros=="000")
         {
             $buscar = '*';
-            $alertas = DB::select('exec spAlertasConsulta ?,?',array($tipo,$buscar));
-            //array_merge($total_alertas,$alertas);
+            //$alertas = DB::select('exec spAlertasConsulta ?,?',array($tipo,$buscar));
+            if($idSubUsuario=="0")
+            {
+                // ES UN USUARIO INTERNO - TODO IGUAL
+                $alertas = DB::select('exec spAlertasConsultaLv2 ?,?',array($tipo,$buscar));
+
+            }else
+            {
+                if($grupo=="0")
+                {
+                    // ES UN USUARIO EXTERNO (SUBUSUARIO)
+                    if($idCategoria=="9")
+                    {
+                        // ES UN SUPERVISOR EXTERNO - PERFILES 4
+                        $alertas = DB::select('exec spAlertasConsultaExternoSupervisor ?,?',array($idSubUsuario,$idUsuario));
+
+                    }else if($idCategoria=="10")
+                    {
+                        // ES UN OPERADOR EXTERNO (SUBUSUARIO) - PERFILES 4
+                        $alertas = DB::select('exec spAlertasConsultaExterno ?,?',array($idSubUsuario,$idUsuario));
+                    }
+                }else
+                {
+                    if($idCategoria=="9")
+                    {
+                        $alertas = DB::select('exec spAlertasConsultaPorGrupoSupervisor ?',array($grupo));
+                    }else
+                    {
+                        $alertas = DB::select('exec spAlertasConsultaPorGrupoOperador ?,?',array($grupo,$idSubUsuario));
+                    }
+                    
+                }
+                
+            }
+            
         }else {
             foreach ($arreglo_listado_parametros as $parametro) {
             
@@ -627,12 +1336,12 @@ class AlertController extends Controller
                             break;
                         case "E":
                             # ENTIDAD, se usa el SP original
-                            $alertas = DB::select('exec spAlertasConsulta ?,?',array($tipo,$buscar));
+                            $alertas = DB::select('exec spAlertasConsultaLv2 ?,?',array($tipo,$buscar));
                             break;
                         case "C":
                             # CLIENTE, buscamos el IdEntidad
                             $cliente = DB::table('Cliente')->select('IdEntidad as IdEntidad')->where('Nombres','LIKE',$buscar.'%')->get();
-                            $alertas = DB::select('exec spAlertasConsulta ?,?',array($tipo,$cliente[0]->IdEntidad));
+                            $alertas = DB::select('exec spAlertasConsultaLv2 ?,?',array($tipo,$cliente[0]->IdEntidad));
                             break;
                         case "A":
                             # ALIAS
@@ -669,13 +1378,43 @@ class AlertController extends Controller
 
     public function seguimientoalertas()
     {
-        $tabla = 'MOTIVORECLAMOCONTROL';
-         
-        $motivosAlerta = DB::select('exec spLlenarCombo ?,?',array($tabla,'2'));
 
-        $tabla = 'AGENTES_AM';
+        $fechaDesde = Carbon::now();
+        $fechaDesde = $fechaDesde->format('d/m/Y 00:00:00');
+
+        $fechaHasta = Carbon::now();
+        $fechaHasta = $fechaHasta->format('d/m/Y 23:59:59');
+
+
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+        
+        if($idSubUsuario=="0")
+        {
+            $tabla = 'AGENTES_AM';
          
-        $agentes = DB::select('exec spLlenarCombo ?',array($tabla));
+            $agentes = DB::select('exec spLlenarCombo ?',array($tabla));
+
+            $tabla = 'MOTIVORECLAMOCONTROL';
+         
+            $motivosAlerta = DB::select('exec spLlenarCombo ?,?',array($tabla,'2'));
+
+        }else
+        {
+            $tabla = 'AGENTES_EXT';
+         
+            $agentes = DB::select('exec spLlenarCombo ?',array($tabla));
+
+            $tabla = 'MOTIVORECLAMOCONTROL';
+         
+            $motivosAlerta = DB::select('exec spLlenarCombo ?,?',array($tabla,'2'));
+
+        }
+
+        
+        
 
         $tabla = 'PRODUCTOS';
          
@@ -685,7 +1424,7 @@ class AlertController extends Controller
          
         $dispositivos = DB::select('exec spLlenarCombo ?',array($tabla));
 
-        return view('alerts.seguimientoalertas',compact('motivosAlerta','agentes','productos','dispositivos'));
+        return view('alerts.seguimientoalertas',compact('motivosAlerta','agentes','productos','dispositivos','fechaDesde','fechaHasta'));
 
         
     }
@@ -700,195 +1439,318 @@ class AlertController extends Controller
 
     public function seguimientoAlertasBuscar(Request $request)
     {
-        /*
-                    Dim TotalAlertas As Integer = BD.getTotalAlertas(FechaDesde, FechaHasta, cbTipoAlerta.SelectedItem.Value)
-                    Dim TotalAlertasResueltas As Integer = BD.getTotalAlertasContestadas(FechaDesde, FechaHasta, cbTipoAlerta.SelectedItem.Value)
-                    Dim Robos As Integer = BD.getAlertasRobos(FechaDesde, FechaHasta, cbTipoAlerta.SelectedItem.Value)
-                    Dim Repetidas As Integer = BD.getAlertasRepetidas(FechaDesde, FechaHasta, cbTipoAlerta.SelectedItem.Value)
-                    Dim CasosEnviadas As Integer = BD.getAlertasCasosEnviados(FechaDesde, FechaHasta, cbTipoAlerta.SelectedItem.Value)
-                    Dim DatosIncorrectos As Integer = BD.getAlertasDatosIncorrectos(FechaDesde, FechaHasta, cbTipoAlerta.SelectedItem.Value)
-
-                    txTotalAlertas.Text = TotalAlertas.ToString
-                    txTotalAlertasResueltas.Text = TotalAlertasResueltas.ToString
-
-                    If TotalAlertasResueltas > 0 Then
-                        txAlertasRobos.Text = ((Robos / TotalAlertasResueltas) * 100).ToString("##,##0.00") + "%"
-                        txAlertasRepetidas.Text = ((Repetidas / TotalAlertasResueltas) * 100).ToString("##,##0.00") + "%"
-                        txAlertasCasosEnviados.Text = ((CasosEnviadas / TotalAlertasResueltas) * 100).ToString("##,##0.00") + "%"
-                        txAlertasDatosIncorrectos.Text = ((DatosIncorrectos / TotalAlertasResueltas) * 100).ToString("##,##0.00") + "%"
-                    Else
-                        txAlertasRobos.Text = "0.00%"
-                        txAlertasRepetidas.Text = "0.00%"
-                        txAlertasCasosEnviados.Text = "0.00%"
-                        txAlertasDatosIncorrectos.Text = "0.00%"
-
-                    End If
-                */
-        $fechaDesde = $request->input('fechaDesde');
-        $fechaHasta = $request->input('fechaHasta');
-        $tipoAlerta = $request->input('tipoAlerta');
-
-        $alias = $request->input('unidadBuscar');
-        $idActivo = $request->input('idActivo');
-        $agente = $request->input('agente');
-        $producto = $request->input('producto');
-        $dispositivo = $request->input('dispositivo');
-        $motivoAlerta = $request->input('motivoAlerta');
-        $cmbRepetidas = $request->input('alertasRepetidas');
-        $cmbPendientes = $request->input('casosEnviados');
-        $cmbRobo = $request->input('robos');
-        $cmbDatosIncorrectos = $request->input('datosIncorrectos');
-
         
-
-        $totalAlertas = DB::select('select dbo.getTotalAlertas (?,?,?) AS ta',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->ta;
-        $totalAlertasResueltas = DB::select('select dbo.getTotalAlertasContestadas (?,?,?) AS tar',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->tar;
-        $robos = DB::select('select dbo.getAlertasRobos (?,?,?) AS robos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->robos;
-        $repetidas = DB::select('select dbo.getAlertasRepetidas (?,?,?) AS repetidas',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->repetidas;
-        $casosEnviados = DB::select('select dbo.getAlertasCasosEnviados (?,?,?) AS casos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->casos;
-        $datosIncorrectos = DB::select('select dbo.getAlertasDatosIncorrectos (?,?,?) AS incorrectos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->incorrectos;
-
-        if($totalAlertasResueltas>0)
-        {
-            $alertasRobos = number_format(($robos/$totalAlertasResueltas)*100,2).' %';
-            $alertasRepetidas = number_format(($repetidas/$totalAlertasResueltas)*100,2).' %';
-            $alertasCasosEnviados = number_format(($casosEnviados/$totalAlertasResueltas)*100,2).' %';
-            $alertasDatosIncorrectos = number_format(($datosIncorrectos/$totalAlertasResueltas)*100,2).' %';
-        }else
-        {
-            $alertasRobos = '0.00%';
-            $alertasRepetidas = '0.00%';
-            $alertasCasosEnviados = '0.00%';
-            $alertasDatosIncorrectos = '0.00%';
-
-
-        }
-
-        if($fechaDesde == null)
-            $fechaDesde = '';
-        if($fechaHasta == null)
-            $fechaHasta = '';
-        if($tipoAlerta == null)
-            $tipoAlerta = '';
-        if($alias == null )
-            $alias = '';
-        if($idActivo == null || $idActivo == '')
-            $idActivo = '0';
-        if($agente == null)
-            $agente = '';
-        if($producto == null)
-            $producto = '';
-        if($dispositivo == null)
-            $dispositivo = '';
-        if($motivoAlerta == null)
-            $motivoAlerta = '';
-        if($cmbRepetidas == null)
-            $cmbRepetidas = '';
-        if($cmbPendientes == null)
-            $cmbPendientes = '';
-        if($cmbRobo == null)
-            $cmbRobo = '';
-        if($cmbDatosIncorrectos == null)
-            $cmbDatosIncorrectos = '';
-
-
-
-        /*$response['fechaDesde'] = $fechaDesde; 
-        $response['fechaHasta'] = $fechaHasta;
-        $response['tipoAlerta'] = $tipoAlerta;
-
-        $response['alias'] = $alias;
-        $response['idActivo'] = $idActivo; 
-        $response['agente'] = $agente ;
-        $response['producto'] = $producto; 
-        $response['dispositivo'] = $dispositivo;  
-        $response['motivoAlerta'] = $motivoAlerta;  
-        $response['cmbRepetidas'] = $cmbRepetidas; 
-        $response['cmbPendientes'] = $cmbPendientes; 
-        $response['cmbRobo'] = $cmbRobo; 
-        $response['cmbDatosIncorrectos'] = $cmbDatosIncorrectos; 
-
-
-        return response()->json($response);*/
-
-        //$alertas = DB::select('exec spAlertaSeguimientoConsultarLv ?,?,?,?,?,?,?,?,?,?,?,?',array('36156','01/01/2017 00:00:00','15/10/2017 23:50:00','','','','3','','','','',''));
-
-        $alertas = DB::select('exec spAlertaSeguimientoConsultarLv ?,?,?,?,?,?,?,?,?,?,?,?',array($idActivo,$fechaDesde,$fechaHasta,$agente,$producto,$dispositivo,$tipoAlerta,$motivoAlerta,$cmbRepetidas,$cmbPendientes,$cmbRobo,$cmbDatosIncorrectos));
         
-        $tiempoRespuesta = 0;
-        $indice = 0;
-
-        foreach($alertas as $alerta)
-        {
-            //$gestionArreglo = explode("\\",$alerta->Gestion);
-            //$gestion = $gestionArreglo[0];
-            //$alertas[$indice]->Gestion = $gestion;
-            $indice++;
-            $fechaInicio = strtotime($alerta->FechaRegistro);
-            $fechaFin =  strtotime($alerta->FechaGestion);
-
-            $diferenciaFechas = $alerta->DiferenciaFechas;
-            list($fecha,$tiempo) = explode(" ",$diferenciaFechas);
-            //list($anio,$mes,$dia) = explode("-",$fecha);
-            list($hora,$minuto,$segundos) = explode(":",$tiempo);
+  
+            
+        try {
+  
+            $fechaDesde = $request->input('fechaDesde');
+            $fechaHasta = $request->input('fechaHasta');
+            $tipoAlerta = $request->input('tipoAlerta');
+    
+            $alias = $request->input('unidadBuscar');
+            $idActivo = $request->input('idActivo');
+            $agente = $request->input('agente');
+            $producto = $request->input('producto');
+            $dispositivo = $request->input('dispositivo');
+            $motivoAlerta = $request->input('motivoAlerta');
+            $cmbRepetidas = $request->input('alertasRepetidas');
+            $cmbPendientes = $request->input('casosEnviados');
+            $cmbRobo = $request->input('robos');
+            $cmbDatosIncorrectos = $request->input('datosIncorrectos');
+    
+            $idUsuario = session('idUsuario');
+            $idSubUsuario = session('idSubUsuario');
+            $idCategoria = session('idCategoria');
+    
+    
+            if($fechaDesde == null)
+                $fechaDesde = '';
+            if($fechaHasta == null)
+                $fechaHasta = '';
+            if($tipoAlerta == null)
+                $tipoAlerta = '0';
+            if($alias == null )
+                $alias = '';
+            if($idActivo == null || $idActivo == '')
+                $idActivo = '0';
+            if($agente == null)
+                $agente = '';
+            if($producto == null)
+                $producto = '';
+            if($dispositivo == null)
+                $dispositivo = '';
+            if($motivoAlerta == null)
+                $motivoAlerta = '0';
+            if($cmbRepetidas == null)
+                $cmbRepetidas = '';
+            if($cmbPendientes == null)
+                $cmbPendientes = '';
+            if($cmbRobo == null)
+                $cmbRobo = '';
+            if($cmbDatosIncorrectos == null)
+                $cmbDatosIncorrectos = '';
+    
+        
+            if($idSubUsuario=="0")
+            {
+                $totalAlertas = DB::select('select dbo.getTotalAlertasLv (?,?,?) AS ta',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->ta;
+                $totalAlertasResueltas = DB::select('select dbo.getTotalAlertasContestadas (?,?,?) AS tar',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->tar;
+                $robos = DB::select('select dbo.getAlertasRobos (?,?,?) AS robos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->robos;
+                $repetidas = DB::select('select dbo.getAlertasRepetidas (?,?,?) AS repetidas',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->repetidas;
+                $casosEnviados = DB::select('select dbo.getAlertasCasosEnviados (?,?,?) AS casos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->casos;
+                $datosIncorrectos = DB::select('select dbo.getAlertasDatosIncorrectos (?,?,?) AS incorrectos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->incorrectos;
+            }else
+            {
+                //$totalAlertas = DB::select('select dbo.getTotalAlertasExterno (?,?,?) AS ta',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->ta;
+                //$totalAlertasResueltas = DB::select('select dbo.getTotalAlertasContestadasExterno (?,?,?) AS tar',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->tar;
+                //$robos = DB::select('select dbo.getAlertasRobosExterno (?,?,?) AS robos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->robos;
+                //$repetidas = DB::select('select dbo.getAlertasRepetidasExterno (?,?,?) AS repetidas',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->repetidas;
+                //$casosEnviados = DB::select('select dbo.getAlertasCasosEnviadosExterno (?,?,?) AS casos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->casos;
+                //$datosIncorrectos = DB::select('select dbo.getAlertasDatosIncorrectosExterno (?,?,?) AS incorrectos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->incorrectos;
+                if($agente=='')
+                {
+                    
+                    $totalAlertas = DB::select('select dbo.getTotalAlertasExterno (?,?,?) AS ta',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->ta;
+                    $totalAlertasResueltas = DB::select('select dbo.getTotalAlertasContestadasExterno (?,?,?) AS tar',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->tar;
+                    $robos = DB::select('select dbo.getAlertasRobosExterno (?,?,?) AS robos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->robos;
+                    $repetidas = DB::select('select dbo.getAlertasRepetidasExterno (?,?,?) AS repetidas',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->repetidas;
+                    $casosEnviados = DB::select('select dbo.getAlertasCasosEnviadosExterno (?,?,?) AS casos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->casos;
+                    $datosIncorrectos = DB::select('select dbo.getAlertasDatosIncorrectosExterno (?,?,?) AS incorrectos',array($fechaDesde,$fechaHasta,$tipoAlerta))[0]->incorrectos;
+                
+                }else
+                {
+                    $totalAlertas = DB::select('select dbo.getTotalAlertasExternoNombre (?,?,?,?) AS ta',array($fechaDesde,$fechaHasta,$tipoAlerta,$agente))[0]->ta;
+                    $totalAlertasResueltas = DB::select('select dbo.getTotalAlertasContestadasExternoNombre (?,?,?,?) AS tar',array($fechaDesde,$fechaHasta,$tipoAlerta,$agente))[0]->tar;
+                    $robos = DB::select('select dbo.getAlertasRobosExternoNombre (?,?,?,?) AS robos',array($fechaDesde,$fechaHasta,$tipoAlerta,$agente))[0]->robos;
+                    $repetidas = DB::select('select dbo.getAlertasRepetidasExternoNombre (?,?,?,?) AS repetidas',array($fechaDesde,$fechaHasta,$tipoAlerta,$agente))[0]->repetidas;
+                    $casosEnviados = DB::select('select dbo.getAlertasCasosEnviadosExternoNombre (?,?,?,?) AS casos',array($fechaDesde,$fechaHasta,$tipoAlerta,$agente))[0]->casos;
+                    $datosIncorrectos = DB::select('select dbo.getAlertasDatosIncorrectosExternoNombre (?,?,?,?) AS incorrectos',array($fechaDesde,$fechaHasta,$tipoAlerta,$agente))[0]->incorrectos;
+                
+                    
+                }
+                
+                
+                
+                
+            }
 
             
-            list($segundo,$microsegundo) = explode(".",$segundos);
-            $timestampDiferencia = mktime($hora,$minuto,$segundo,0,0,0);
-            $diferenciaFechas = date("H:i:s",$timestampDiferencia);
-
-            $minutos = ($hora*60) + ($minuto) + ($segundos/60);
+            //$response['totalAlertas'] = $totalAlertas; 
+            //$response['totalAlertasResueltas'] = $totalAlertasResueltas; 
+            //return response()->json($response);
             
 
-            //if($alerta->FechaGestion<>'')
-            $tiempoRespuesta = $tiempoRespuesta + round($minutos,2);
-           
-        }
-        
-        if(sizeof($alertas)>0)
-        {
-            $totalAlertasResultantes = sizeof($alertas);
-            $tiempoRespuestaPromedio = number_format($tiempoRespuesta/sizeof($alertas),2).' min';
-            $totalAlertasXAgente = sizeof($alertas);
-        }else{
-            $totalAlertasResultantes = 0;
-            $tiempoRespuestaPromedio = "--------";
-            $totalAlertasXAgente = 0;
-        }
 
-        if($totalAlertasResueltas>0)
-        {
-            $promedioAlertasContestadasXAgente = number_format(($totalAlertasXAgente/$totalAlertasResueltas)*100,2).' %';
-        }else{
-            $promedioAlertasContestadasXAgente = '0.00%';
-        }
+            if($totalAlertasResueltas>0)
+            {
+                $alertasRobos = number_format(($robos/$totalAlertasResueltas)*100,2).' %';
+                $alertasRepetidas = number_format(($repetidas/$totalAlertasResueltas)*100,2).' %';
+                $alertasCasosEnviados = number_format(($casosEnviados/$totalAlertasResueltas)*100,2).' %';
+                $alertasDatosIncorrectos = number_format(($datosIncorrectos/$totalAlertasResueltas)*100,2).' %';
+            }else
+            {
+                $alertasRobos = '0.00%';
+                $alertasRepetidas = '0.00%';
+                $alertasCasosEnviados = '0.00%';
+                $alertasDatosIncorrectos = '0.00%';
+            }
+
+            
 
         
 
-        $promedioAlertasContestadas = number_format(($totalAlertasResueltas/$totalAlertas)*100,2).' %';
-        $promedioAlertasTotalesXAgente = number_format(($totalAlertasXAgente/$totalAlertas)*100,2).' %';
 
-        $response['promedioAlertasContestadas'] = $promedioAlertasContestadas;
-        $response['promedioAlertasTotalesXAgente'] = $promedioAlertasTotalesXAgente;
+            /*$response['fechaDesde'] = $fechaDesde; 
+            $response['fechaHasta'] = $fechaHasta;
+            $response['tipoAlerta'] = $tipoAlerta;
 
-        $response['promedioAlertasContestadasXAgente'] = $promedioAlertasContestadasXAgente;
+            $response['alias'] = $alias;
+            $response['idActivo'] = $idActivo; 
+            $response['agente'] = $agente ;
+            $response['producto'] = $producto; 
+            $response['dispositivo'] = $dispositivo;  
+            $response['motivoAlerta'] = $motivoAlerta;  
+            $response['cmbRepetidas'] = $cmbRepetidas; 
+            $response['cmbPendientes'] = $cmbPendientes; 
+            $response['cmbRobo'] = $cmbRobo; 
+            $response['cmbDatosIncorrectos'] = $cmbDatosIncorrectos; 
+            */
+                
 
-        $response['totalAlertasResultantes'] = $totalAlertasResultantes;
-        $response['tiempoRespuestaPromedio'] = $tiempoRespuestaPromedio;
-        $response['totalAlertasXAgente'] = $totalAlertasXAgente;
 
-       
-        $response['alertas'] = $alertas;
-        $response['totalAlertas'] = $totalAlertas;
-        $response['totalAlertasResueltas'] = $totalAlertasResueltas;
-        $response['robos'] = $robos;
-        $response['repetidas'] = $repetidas;
-        $response['casosEnviador'] = $casosEnviados;
-        $response['datosIncorrectos'] = $datosIncorrectos;
-        $response['alertasRobos'] = $alertasRobos;
-        $response['alertasRepetidas'] = $alertasRepetidas;
-        $response['alertasCasosEnviados'] = $alertasCasosEnviados;
-        $response['alertasDatosIncorrectos'] = $alertasDatosIncorrectos;
+            
+
+            //return response()->json($response);
+
+            //$alertas = DB::select('exec spAlertaSeguimientoConsultarLv ?,?,?,?,?,?,?,?,?,?,?,?',array('36156','01/01/2017 00:00:00','15/10/2017 23:50:00','','','','3','','','','',''));
+
+            $sp = "0";
+            $sp = $idActivo.' - '.$fechaDesde.' - '.$fechaHasta.' - '.$agente.' - '.$producto.' - '.$dispositivo.' - '.$tipoAlerta.' - '.$motivoAlerta.' - '.$cmbRepetidas.' - '.$cmbPendientes.' - '.$cmbRobo.' - '.$cmbDatosIncorrectos;
+            if($idSubUsuario=="0")
+            {
+                // ES UN USUARIO INTERNO
+                $alertas = DB::select('exec spAlertaSeguimientoConsultarLv ?,?,?,?,?,?,?,?,?,?,?,?',array($idActivo,$fechaDesde,$fechaHasta,$agente,$producto,$dispositivo,$tipoAlerta,$motivoAlerta,$cmbRepetidas,$cmbPendientes,$cmbRobo,$cmbDatosIncorrectos));    
+                $sp = $idActivo.' - '.$fechaDesde.' - '.$fechaHasta.' - '.$agente.' - '.$producto.' - '.$dispositivo.' - '.$tipoAlerta.' - '.$motivoAlerta.' - '.$cmbRepetidas.' - '.$cmbPendientes.' - '.$cmbRobo.' - '.$cmbDatosIncorrectos;
+            }else
+            {
+                if($agente=='')
+                {
+                    
+                    $alertas_temp = DB::select('exec spAlertaSeguimientoConsultarLvExternoSinNombre ?,?,?,?,?,?,?,?,?,?,?,?',array($idActivo,$fechaDesde,$fechaHasta,$agente,$producto,$dispositivo,$tipoAlerta,$motivoAlerta,$cmbRepetidas,$cmbPendientes,$cmbRobo,$cmbDatosIncorrectos));
+                    foreach ($alertas_temp as $alerta_temp) {
+                        if($alerta_temp->NombreAgente=='')
+                        {
+                            try {
+                                $monitoristas = DB::table('ActivoSubUsuario')->select('IdSubUsuario')->where('IdUsuario','=',112433)->where('IdActivo','=',$alerta_temp->IdActivo)->get();
+                                $operadores = '';
+                                foreach ($monitoristas as $monitorista) {
+                                    $agentes = DB::table('SubUsuario')->select('NombreCompleto')->where('IdUsuario','=',112433)->where('IdSubUsuario','=',$monitorista->IdSubUsuario)->get();
+                                    
+                                    foreach ($agentes as $agenteuno) {
+                                        $operadores = $operadores.$agenteuno->NombreCompleto.', ';
+                                    }
+                                }
+                                $alerta_temp->NombreAgente = $operadores;    
+                            } catch (\Throwable $th) {
+                                
+                            }
+                            
+                        }
+                        $alertas[] = $alerta_temp;
+                    }
+
+                    
+                
+                
+                }else
+                {
+                    $alertas = DB::select('exec spAlertaSeguimientoConsultarLvExterno ?,?,?,?,?,?,?,?,?,?,?,?',array($idActivo,$fechaDesde,$fechaHasta,$agente,$producto,$dispositivo,$tipoAlerta,$motivoAlerta,$cmbRepetidas,$cmbPendientes,$cmbRobo,$cmbDatosIncorrectos));
+                }
+                
+            }
+
+            
+
+            //$alertas = DB::select('exec spAlertaSeguimientoConsultarLv ?,?,?,?,?,?,?,?,?,?,?,?',array($idActivo,$fechaDesde,$fechaHasta,$agente,$producto,$dispositivo,$tipoAlerta,$motivoAlerta,$cmbRepetidas,$cmbPendientes,$cmbRobo,$cmbDatosIncorrectos));
+            
+            $tiempoRespuesta = 0;
+            $indice = 0;
+
+
+
+            foreach($alertas as $alerta)
+            {
+                //$gestionArreglo = explode("\\",$alerta->Gestion);
+                //$gestion = $gestionArreglo[0];
+                //$alertas[$indice]->Gestion = $gestion;
+                $indice++;
+                $fechaInicio = strtotime($alerta->FechaRegistro);
+                $fechaFin =  strtotime($alerta->FechaGestion);
+
+                $diferenciaFechas = $alerta->DiferenciaFechas;
+                list($fecha,$tiempo) = explode(" ",$diferenciaFechas);
+                //list($anio,$mes,$dia) = explode("-",$fecha);
+                list($hora,$minuto,$segundos) = explode(":",$tiempo);
+
+                
+                list($segundo,$microsegundo) = explode(".",$segundos);
+                $timestampDiferencia = mktime($hora,$minuto,$segundo,0,0,0);
+                $diferenciaFechas = date("H:i:s",$timestampDiferencia);
+
+                $minutos = ($hora*60) + ($minuto) + ($segundos/60);
+                
+
+                //if($alerta->FechaGestion<>'')
+                $tiempoRespuesta = $tiempoRespuesta + round($minutos,2);
+            
+            }
+
+            
+
+            
+            
+            if(sizeof($alertas)>0)
+            {
+                $totalAlertasResultantes = sizeof($alertas);
+                $tiempoRespuestaPromedio = number_format($tiempoRespuesta/sizeof($alertas),2).' min';
+                $totalAlertasXAgente = $totalAlertasResueltas;
+                /*if($agente=='')
+                {
+                    $totalAlertasXAgente = $totalAlertasResueltas; // sizeof($alertas);
+                }else
+                {
+                    $totalAlertasXAgente = 0;
+                    foreach ($alertas as $alerta) {
+                        if($alerta->FechaGestion=='')
+                        {
+
+                        }else
+                        {
+                            $totalAlertasXAgente = $totalAlertasXAgente + 1;
+                        }
+                    }
+                }*/
+            }else{
+                $totalAlertasResultantes = 0;
+                $tiempoRespuestaPromedio = "--------";
+                $totalAlertasXAgente = 0;
+            }
+
+        
+
+            if($totalAlertasResueltas>0)
+            {
+                $promedioAlertasContestadasXAgente = number_format(($totalAlertasXAgente/$totalAlertasResueltas)*100,2).' %';
+            }else{
+                $promedioAlertasContestadasXAgente = '0.00%';
+            }
+
+            
+
+            
+            if($totalAlertas>0)
+            {
+                $promedioAlertasContestadas = number_format(($totalAlertasResueltas/$totalAlertas)*100,2).' %';
+                $promedioAlertasTotalesXAgente = number_format(($totalAlertasXAgente/$totalAlertas)*100,2).' %';
+            }else
+            {
+                $promedioAlertasContestadas = '0.00%';
+                $promedioAlertasTotalesXAgente = '0.00%';
+            }
+            
+
+            //$response = $totalAlertasResueltas;
+            //return response()->json($response);
+
+            $response['promedioAlertasContestadas'] = $promedioAlertasContestadas;
+            $response['promedioAlertasTotalesXAgente'] = $promedioAlertasTotalesXAgente;
+
+            $response['promedioAlertasContestadasXAgente'] = $promedioAlertasContestadasXAgente;
+
+            $response['totalAlertasResultantes'] = $totalAlertasResultantes;
+            $response['tiempoRespuestaPromedio'] = $tiempoRespuestaPromedio;
+            $response['totalAlertasXAgente'] = $totalAlertasXAgente;
+
+        
+            $response['alertas'] = $alertas;
+            $response['totalAlertas'] = $totalAlertas;
+            $response['totalAlertasResueltas'] = $totalAlertasResueltas;
+            $response['robos'] = $robos;
+            $response['repetidas'] = $repetidas;
+            $response['casosEnviador'] = $casosEnviados;
+            $response['datosIncorrectos'] = $datosIncorrectos;
+            $response['alertasRobos'] = $alertasRobos;
+            $response['alertasRepetidas'] = $alertasRepetidas;
+            $response['alertasCasosEnviados'] = $alertasCasosEnviados;
+            $response['alertasDatosIncorrectos'] = $alertasDatosIncorrectos;
+
+            $response['idSubUsuario'] = $idSubUsuario;
+            $response['sp'] = $sp;
+        } catch (\Throwable $th) {
+            $response['error'] = $th->getMessage();
+        }
 
         
         //$response = "";// $totalAlertas;
@@ -904,6 +1766,343 @@ class AlertController extends Controller
         $fecha = $fecha->format('dmY');
         return Excel::download(new AlertsExportSeguimientoAlertas($request),'Seguimiento_De_Alertas_'.$fecha.'.xlsx');
     }
+
+
+
+    public function seguimientoAlertasAgrupadasPorMonitorista()
+    {
+
+        $fechaDesde = Carbon::now();
+        $fechaDesde = $fechaDesde->format('d/m/Y 00:00:00');
+
+        $fechaHasta = Carbon::now();
+        $fechaHasta = $fechaHasta->format('d/m/Y 23:59:59');
+
+
+        $idUsuario = session('idUsuario');
+        $idSubUsuario = session('idSubUsuario');
+        $idCategoria = session('idCategoria');
+
+        
+        if($idSubUsuario=="0")
+        {
+            $tabla = 'AGENTES_AM';
+         
+            $agentes = DB::select('exec spLlenarCombo ?',array($tabla));
+
+            $tabla = 'MOTIVORECLAMOCONTROL';
+         
+            $motivosAlerta = DB::select('exec spLlenarCombo ?,?',array($tabla,'2'));
+
+        }else
+        {
+            $tabla = 'AGENTES_EXT';
+         
+            $agentes = DB::select('exec spLlenarCombo ?',array($tabla));
+
+            $tabla = 'MOTIVORECLAMOCONTROL';
+         
+            $motivosAlerta = DB::select('exec spLlenarCombo ?,?',array($tabla,'2'));
+
+        }
+
+        
+        
+        
+        $tabla = 'GRUPOSCN';
+         
+        $grupos = DB::select('exec spLlenarCombo ?',array($tabla));
+        /*
+        $tabla = 'TIPODISPOSITIVOS';
+         
+        $dispositivos = DB::select('exec spLlenarCombo ?',array($tabla));
+        */
+
+        return view('alerts.alertasAgrupadasPorMonitorista',compact('fechaDesde','fechaHasta','agentes','grupos'));
+
+        
+    }
+
+    public function average_time($total, $count, $rounding = 0) {
+        $total = explode(":", strval($total));
+        if (count($total) !== 3) return false;
+        $sum = $total[0]*60*60 + $total[1]*60 + $total[2];
+        $average = $sum/(float)$count;
+        $hours = floor($average/3600);
+        $minutes = floor(fmod($average,3600)/60);
+        $seconds = number_format(fmod(fmod($average,3600),60),(int)$rounding);
+        return $hours.":".$minutes.":".$seconds;
+    }
+
+    public function sum_the_time($time1, $time2) {
+        $times = array($time1, $time2);
+        $seconds = 0;
+        foreach ($times as $time)
+        {
+          list($hour,$minute,$second) = explode(':', $time);
+          $seconds += $hour*3600;
+          $seconds += $minute*60;
+          $seconds += $second;
+        }
+        $hours = floor($seconds/3600);
+        $seconds -= $hours*3600;
+        $minutes  = floor($seconds/60);
+        $seconds -= $minutes*60;
+        return "{$hours}:{$minutes}:{$seconds}";
+      }
+
+
+    public function seguimientoAlertasBuscarAgrupados(Request $request)
+    {
+        
+        
+        $fechaDesde = $request->input('fechaDesde');
+        $fechaHasta = $request->input('fechaHasta');
+        $agente = $request->input('agente');
+        $grupo = $request->input('grupo');
+
+        if($agente == null)
+            $agente = '';
+        if($grupo == null)
+            $grupo = '';
+
+        
+
+        //return response()->json($alertas);
+
+        try {
+
+            Log::info("ANTES DE TRAER LISTADOS");
+            if($agente=='')
+            {
+                Log::info("ANTES DE ATENDIDAS");
+                $alertasAtendidas = DB::select('exec spAlertaSeguimientoConsultarLvAgrupadosAtendidosSinNombre ?,?,?',array($fechaDesde,$fechaHasta,$grupo));
+                Log::info("LUEGO DE ATENDIDAS");
+                $alertasNoAtendidas = DB::select('exec spAlertaSeguimientoConsultarLvAgrupadosNoAtendidosSinNombre ?,?,?',array($fechaDesde,$fechaHasta,$grupo));
+                $alertasGeneradas = DB::select('exec spAlertaSeguimientoConsultarLvAgrupadosGeneradasSinNombre ?,?,?',array($fechaDesde,$fechaHasta,$grupo));
+                $alertasAtendidasPorOtros = array();
+            }else
+            {
+                $alertasAtendidas = DB::select('exec spAlertaSeguimientoConsultarLvAgrupadosAtendidosConNombre ?,?,?,?',array($fechaDesde,$fechaHasta,$grupo,$agente));
+                $alertasNoAtendidas = DB::select('exec spAlertaSeguimientoConsultarLvAgrupadosNoAtendidosConNombre ?,?,?,?',array($fechaDesde,$fechaHasta,$grupo,$agente));
+                $alertasGeneradas = DB::select('exec spAlertaSeguimientoConsultarLvAgrupadosGeneradasConNombre ?,?,?,?',array($fechaDesde,$fechaHasta,$grupo,$agente));
+                $alertasAtendidasPorOtros = DB::select('exec spAlertaSeguimientoConsultarLvAgrupadosAtendidosPorOtroConNombre ?,?,?,?',array($fechaDesde,$fechaHasta,$grupo,$agente));
+            }
+            Log::info("LUEGO DE TRAER LISTADOS");
+
+            //$response = $alertasAtendidasPorOtros;
+            //return response()->json($response);
+            
+
+            $alertasAgrupadas = array();
+            $sumaTiempos = array();
+
+            $evento = '';
+
+            /*********** ALERTAS GENERADAS *********/ 
+            foreach($alertasGeneradas as $val) {
+                $eventoTemp = $val->Alerta;
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                }
+                $alertasAgrupadas[$evento]['G'] = 0;
+                
+            }
+
+            foreach($alertasGeneradas as $val) {
+                $eventoTemp = $val->Alerta;
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                } 
+                $alertasAgrupadas[$evento]['G']++;
+                
+            }
+
+
+            /************ ALERTAS ATENDIDAS ********/ 
+            
+            foreach($alertasAtendidas as $val) {
+                $eventoTemp = $val->Alerta;
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                }
+                $alertasAgrupadas[$evento]['A'] = 0; 
+                $alertasAgrupadas[$evento]['TP'] = 0;
+                $sumaTiempos[$evento] = date('H:i:s',strtotime('00:00:00'));
+            }
+            //$response = $sumaTiempos;
+            //return response()->json($response);
+
+
+            foreach($alertasAtendidas as $val) {
+                $eventoTemp = $val->Alerta;
+                $diferenciaTiempos = date("H:i:s",strtotime($val->Diferencia));
+                //return response()->json($diferenciaTiempos);
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                }
+                $alertasAgrupadas[$evento]['A']++;
+                $sumaTiempos[$evento] = AlertController::sum_the_time($sumaTiempos[$evento],$diferenciaTiempos);
+            }
+            
+            //$response = $sumaTiempos;     
+            //return response()->json($response);
+            
+
+            foreach ($alertasAtendidas as $key => $val) {
+                $eventoTemp = $val->Alerta;
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                }
+                $tiempoPromedioArreglo = explode(":",AlertController::average_time($sumaTiempos[$evento],$alertasAgrupadas[$evento]['A']));
+                
+                $alertasAgrupadas[$evento]['TP'] = $tiempoPromedioArreglo[1];//AlertController::average_time($sumaTiempos[$evento],$alertasAgrupadas[$evento]['A']);
+            }
+
+            //$response = $alertasAgrupadas;     
+            //return response()->json($response);
+
+            
+
+            /********** ALERTAS NO ATENDIDAS **********/
+            foreach($alertasNoAtendidas as $val) {
+                $eventoTemp = $val->Alerta;
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                }
+                $alertasAgrupadas[$evento]['NA'] = 0;
+                
+            }
+
+            foreach($alertasNoAtendidas as $val) {
+                $eventoTemp = $val->Alerta;
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                }
+                $alertasAgrupadas[$evento]['NA']++;
+                
+            }
+
+            /****** ALERTAS ATENDIDAS POR OTROS ******/
+
+            foreach($alertasGeneradas as $val) {
+                $eventoTemp = $val->Alerta;
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                }
+                $alertasAgrupadas[$evento]['APO'] = 0;
+                
+            }
+
+            foreach($alertasAtendidasPorOtros as $val) {
+                $eventoTemp = $val->Alerta;
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                }
+                $alertasAgrupadas[$evento]['APO']++;
+                
+            }
+
+            /************/
+
+            foreach($alertasGeneradas as $val) {
+                $eventoTemp = $val->Alerta;
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                }
+                try {
+                    $alertasAgrupadas[$evento]['EFICIENCIA'] = number_format(($alertasAgrupadas[$evento]['A'] / $alertasAgrupadas[$evento]['G']) * 100)."%" ;
+                } catch (\Throwable $th) {
+                    $alertasAgrupadas[$evento]['EFICIENCIA'] = "0.00%";
+                }
+                
+                
+            }
+
+            foreach($alertasGeneradas as $val) {
+                $eventoTemp = $val->Alerta;
+                $arregloEvento = explode(' - ',$eventoTemp);
+                try {
+                    $evento = $arregloEvento[1];
+                } catch (\Throwable $th) {
+                    $evento = $arregloEvento[0];
+                }
+                try {
+                    if(number_format(100-(($alertasAgrupadas[$evento]['TP'] * 100 / 10) - 100),2)>=0)
+                        $alertasAgrupadas[$evento]['EFICACIA'] = number_format(100-(($alertasAgrupadas[$evento]['TP'] * 100 / 10) - 100),2)."%" ;
+                    else
+                        $alertasAgrupadas[$evento]['EFICACIA'] = "0.00%";
+                } catch (\Throwable $th) {
+                    $alertasAgrupadas[$evento]['EFICACIA'] = "0.00%";
+                }
+                
+                
+            }
+    
+            
+            
+            
+            $response['data'] = $alertasAgrupadas;
+        } catch (\Throwable $th) {
+            $response = $th->getMessage() ;
+        }
+        
+
+        
+        
+        return response()->json($response);
+    }
+
+
+    function exportAlertasPorMonitorista(Request $request)
+    {
+        
+        $fecha = Carbon::now();
+           
+        $fecha = $fecha->format('dmY');
+        return Excel::download(new AlertsExportAlertasPorMonitorista($request),'AlertasPorMonitorista_'.$fecha.'.xlsx');
+    }
+
+    
+
+   
+    /****
+     * POST VENTA
+     * 
+     * 
+     * 
+     * 
+     */
 
     function reportegerencial()
     {
@@ -941,6 +2140,32 @@ class AlertController extends Controller
 
         return response()->json($response);
     }
+
+    /*function reparaFechas()
+    {
+        $registros = DB::table('CorregirFechas')->select('secuencia','idAlerta','fecha')->get();
+        foreach ($registros as $registro) {
+            $secuencia = $registro->secuencia;
+            $idAlerta = $registro->idAlerta;
+            DB::update('exec spRepararFechasLv ?,?',array($secuencia,$idAlerta));    
+        }
+        return $registros;
+        
+    }*/
+
+    /*function consultacaidasxmonitoreo(Request $request)
+    {
+        $idMonitoreo = $request->idMonitoreo;
+        $caidas = DB::select('exec spAlertasConsultaCaidasXMonitoreo ?',array($idMonitoreo));
+        $contador = 0;
+        foreach ($caidas as $caida) {
+            $contador++;
+        }
+
+        $resultado['data'] = $contador;
+        $response = array();
+        return response()->json($resultado);
+    }*/
 
     
 }

@@ -46,7 +46,7 @@
     <script type="text/javascript" src="{{asset('js/daterangepicker.js')}}"></script>
     <link rel="stylesheet" type="text/css" href="{{asset('css/daterangepicker.css')}}" />
 
-    <script type="text/javascript" src="http://maps.google.com/maps/api/js?key=AIzaSyBuMimu7-55am4RMe-W3y8nhSXGqfJMGvQ"></script>
+    <script type="text/javascript" src="https://maps.google.com/maps/api/js?key=AIzaSyBuMimu7-55am4RMe-W3y8nhSXGqfJMGvQ&libraries=places"></script>
 
     
 
@@ -133,6 +133,7 @@
                                         
                                 </div>
                                 <div id="map"></div>
+                                <input id="pac-input"></input>
                                 <div id="floating-panel">
                                     <input id="removePoligono" class="btn btn-secondary btn-sm" type="button" value="Borrar" />
                                     
@@ -169,7 +170,66 @@
             zoom: 15,
             streetViewControl: false,
             mapTypeId: google.maps.MapTypeId.ROADMAP
+            
         });
+
+        // Create the search box and link it to the UI element.
+        var input = /** @type {HTMLInputElement} */ (
+            document.getElementById('pac-input'));
+        map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+
+        var searchBox = new google.maps.places.SearchBox(
+        /** @type {HTMLInputElement} */
+        (input));
+
+        // Listen for the event fired when the user selects an item from the
+        // pick list. Retrieve the matching places for that item.
+        google.maps.event.addListener(searchBox, 'places_changed', function() {
+            var places = searchBox.getPlaces();
+            for (var i = 0, marker; marker = markers[i]; i++) {
+            marker.setMap(null);
+            }
+
+            // For each place, get the icon, place name, and location.
+            markers = [];
+            var bounds = new google.maps.LatLngBounds();
+            var place = null;
+            var viewport = null;
+            for (var i = 0; place = places[i]; i++) {
+                var image = {
+                    url: place.icon,
+                    size: new google.maps.Size(71, 71),
+                    origin: new google.maps.Point(0, 0),
+                    anchor: new google.maps.Point(17, 34),
+                    scaledSize: new google.maps.Size(25, 25)
+                };
+
+                // Create a marker for each place.
+                var marker = new google.maps.Marker({
+                    map: map,
+                    icon: image,
+                    title: place.name,
+                    position: place.geometry.location
+                });
+                viewport = place.geometry.viewport;
+                markers.push(marker);
+
+                bounds.extend(place.geometry.location);
+            }
+            map.setCenter(bounds.getCenter());
+        });
+
+        // Bias the SearchBox results towards places that are within the bounds of the
+        // current map's viewport.
+        google.maps.event.addListener(map, 'bounds_changed', function() {
+            var bounds = map.getBounds();
+            searchBox.setBounds(bounds);
+        });
+        
+
+
+
+
         //var marker = new google.maps.Marker({
         //    position: latlng,
         //    map: map,

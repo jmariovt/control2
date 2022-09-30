@@ -7,7 +7,7 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'EGadmin') }}</title>
+    <title>{{ config('app.name', 'Xadmin') }}</title>
 
     <!-- CSS only -->
     
@@ -26,6 +26,7 @@
     <!--<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>-->
     <script src="{{asset('js/popper.min.js')}}" type="text/javascript"></script>
     <script src="{{asset('js/bootstrap.min.js')}}" type="text/javascript"></script>
+    <script src="{{asset('js/jquery.highlight-5.js')}}" type="text/javascript"></script>
     <!--<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>-->
     
     <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>-->
@@ -83,6 +84,10 @@
                                 <div class="row justify-content-center">
                                     <form class="form-group" method="POST" action="/xadmin/alerts/exportSeguimientoAlertas">
                                     @csrf
+                                    <?php
+                                        $idSubUsuario = session('idSubUsuario');
+                                    ?>
+                                        <input type="hidden" class="form-control form-control-sm" id="idSubUsuario" name="idSubUsuario" value="{{$idSubUsuario}}">
                                         <table class="table table-primary table-sm">
                                         <!-- 'motivosAlerta','agentes','productos','dispositivos' -->
                                             <tbody>
@@ -91,6 +96,7 @@
                                                     <td>
                                                         <input class="form-control form-control-sm" type="text" placeholder="Unidad" id="unidadBuscar" name="unidadBuscar" value="{{ old('unidadBuscar')}}">
                                                         <input class="form-control form-control-sm" type="hidden"  id="idActivo" name="idActivo" value="{{ old('idActivo')}}" >
+                                                        
                                                         <!--<div class="form-group">
                                                             <label for="buscarPor">Buscar por</label>
                                                             <select class="form-control form-control-sm" id="buscarPor">
@@ -104,12 +110,12 @@
                                                     </td>
                                                     <td align="right"><font size=2>Desde</font></td>
                                                     <td>
-                                                        <input class="form-control form-control-sm" type="text" placeholder="Desde" id="fechaDesde" name="fechaDesde" value="" autocomplete="off">
+                                                        <input class="form-control form-control-sm" type="text" placeholder="Desde" id="fechaDesde" name="fechaDesde" value="{{$fechaDesde}}" autocomplete="off">
                                                     </td>
 
                                                     <td align="right"><font size=2>Hasta</font></td>
                                                     <td>
-                                                        <input class="form-control form-control-sm" id="fechaHasta" name="fechaHasta" type="text" placeholder="Hasta" value="" autocomplete="off">
+                                                        <input class="form-control form-control-sm" id="fechaHasta" name="fechaHasta" type="text" placeholder="Hasta" value="{{$fechaHasta}}" autocomplete="off">
                                                     </td>
 
                                                     <td align="right"><font size=2>Motivo alerta</font></td>
@@ -130,9 +136,43 @@
                                                     <td align="right"><font size=2>Agente</font></td>
                                                     <td>
                                                         <div class="form-group">
-                                                            <select class="form-control-sm" id="agente">
+                                                            <select class="form-control-sm" id="agente" name="agente">
                                                                 @foreach($agentes as $agente)
-                                                                    <option value="{{$agente->Descripcion}}">{{$agente->Descripcion}}</option>
+                                                                    <!--<option value="{{$agente->Descripcion}}">{{$agente->Descripcion}}</option>-->
+                                                                    <?php
+                                                                        $nombreUsuario = session('nombre');
+                                                                        $idUsuario = session('idUsuario');
+                                                                        $idSubUsuario = session('idSubUsuario');
+                                                                        $idCategoria = session('idCategoria');
+                                                                        $perfil = session('perfil');
+
+                                                                        if($idSubUsuario=="0")
+                                                                        {
+                                                                    ?>
+                                                                        <option value="{{$agente->Descripcion}}">{{$agente->Descripcion}}</option>
+                                                                        <?php
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            if($idCategoria=="9" || (strpos($perfil,'1002')!==false) )
+                                                                            {
+                                                                                
+                                                                        ?>
+                                                                                <option value="{{$agente->Descripcion}}">{{$agente->Descripcion}}</option>
+                                                                        <?php
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                Log::info('Mariolog: Comparar nombreUsuario y agente '.$nombreUsuario.' agente: '.$agente->Descripcion);
+                                                                                if($nombreUsuario==$agente->Descripcion || strpos($agente->Descripcion,$nombreUsuario)!==false)
+                                                                                {
+                                                                        ?>
+                                                                                <option value="{{$agente->Descripcion}}">{{$agente->Descripcion}}</option>
+                                                                        <?php
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        ?>
                                                                 @endforeach
                                                             </select>
                                                         </div>
@@ -168,6 +208,7 @@
                                                         </div>
                                                     </td>
                                                 </tr>
+                                                @if($idSubUsuario=="0")
                                                 <tr>
                                                     <td align="right"><font size=2>Alertas repetidas</font></td>
                                                     <td>
@@ -210,10 +251,11 @@
                                                         </div>
                                                     </td>
                                                 </tr>
+                                                @endif
                                                 <tr>
                                                     <td colspan="8" align="center">
                                                         <button type="button" class="btn btn-outline-primary btn-sm " id="btSeguimientoAlertaBuscar" name="btSeguimientoAlertaBuscar">Buscar</button>
-                                                        <button type="submit" class="btn btn-outline-success btn-sm " id="btSeguimientoAlertaBuscar" name="btSeguimientoAlertaBuscar">Exportar (no usar)</button>
+                                                        <button type="submit" class="btn btn-outline-success btn-sm " id="btSeguimientoAlertaBuscar" name="btSeguimientoAlertaBuscar">Exportar</button>
                                                         <!--<a href="/xadmin/alerts/pruebaSeguimientoAlertas" class="btn btn-outline-primary btn-sm">Pruebasss</a>-->
                                                     </td>
                                                 </tr>
@@ -235,11 +277,11 @@
                                                     <td>
                                                         <input class="form-control form-control-sm" type="text"  id="totalAlertasGeneradas" name="totalAlertasGeneradas" value=''>
                                                     </td>
-                                                    <td align="right"><font size=2>Total alertas contestadas</font></td>
+                                                    <td align="right"><font size=2>Total alertas atendidas</font></td>
                                                     <td>
                                                         <input class="form-control form-control-sm" type="text"  id="totalAlertasContestadas" name="totalAlertasContestadas" value=''>
                                                     </td>
-                                                    <td align="right"><font size=2>Promedio alertas contestadas</font></td>
+                                                    <td align="right"><font size=2>Promedio alertas atendidas</font></td>
                                                     <td>
                                                         <input class="form-control form-control-sm" type="text"  id="promedioAlertasContestadas" name="promedioAlertasContestadas" value=''>
                                                     </td>
@@ -267,11 +309,11 @@
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td align="right" ><font size=2>Total alertas contestadas por agentes</font></td>
+                                                    <td align="right" ><font size=2>Total alertas atendidas por agentes</font></td>
                                                     <td>
                                                         <input class="form-control form-control-sm" type="text"  id="totalAlertasContestadasAgente" name="totalAlertasContestadasAgente" value=''>
                                                     </td>
-                                                    <td align="right"><font size=2>Prom. alertas contestadas x agentes</font></td>
+                                                    <td align="right"><font size=2>Prom. alertas atendidas x agentes</font></td>
                                                     <td>
                                                         <input class="form-control form-control-sm" type="text"  id="promAlertasContestadasAgente" name="promAlertasContestadasAgente" value=''>
                                                     </td>
@@ -289,11 +331,15 @@
                                         <thead >
                                             <tr>
                                                 <th width="8%">Nombre Cliente</th>
-                                                <th width="8%">VID</th>
-                                                <th width="8%">CodSysHunter</th>
+                                                @if($idSubUsuario=="0")
+                                                    <th width="8%">VID</th>
+                                                    <th width="8%">CodSysHunter</th>
+                                                @endif
                                                 <th width="8%">Alias</th>
-                                                <th width="12%">Producto</th>
-                                                <th width="8%">Dispositivo</th>
+                                                @if($idSubUsuario=="0")
+                                                    <th width="12%">Producto</th>
+                                                    <th width="8%">Dispositivo</th>
+                                                @endif
                                                 <th width="8%">Alerta</th>
                                                 <th width="8%">Estado de Alerta</th>
                                                 <th width="4%">Fecha Ocurrencia</th>
@@ -333,6 +379,18 @@
                 // SIN USAR
            
                 console.log($("#tipoAlerta").val());
+
+                $('#totalAlertasGeneradas').val('');
+                $('#totalAlertasContestadas').val('');
+                $('#promedioAlertasContestadas').val('');
+                $('#tiempoRespuestaPromedio').val('');
+                $('#promRobos').val('');
+                $('#promCasosEnviados').val('');
+                $('#promRepetidas').val('');
+                $('#promDatosIncorrectos').val('');
+                $('#totalAlertasContestadasAgente').val('');
+                $('#promAlertasContestadasAgente').val('');
+                $('#promAlertasTotalContestadasAgente').val('');
                
 
                 var fechaDesde = $("#fechaDesde").val();
@@ -340,6 +398,12 @@
                 var tipoAlerta = $("#tipoAlerta").val();
                 var unidadBuscar = $("#unidadBuscar").val();
                 var idActivo = $("#idActivo").val();
+
+                if(unidadBuscar=="")
+                    idActivo = "0";
+
+                
+
                 agente = $("#agente").val();
                 producto = $("#producto").val();
                 dispositivo = $("#dispositivo").val();
@@ -359,7 +423,7 @@
                     unidadBuscar = '';
                 if(idActivo == null)
                     idActivo = '';
-                if(agente == null)
+                if(agente == null || agente == 'TODOS')
                     agente = '';
                 if(producto == null)
                     producto = '';
@@ -378,6 +442,7 @@
                 if(unidadBuscar == null)
                     unidadBuscar = '';
 
+                console.log('Buscar IdActivo: '+idActivo);
                 if (fechaDesde=="" || fechaHasta=="" )
                 {
                     alert('Verifique los datos ingresados para Continuar');
@@ -429,6 +494,9 @@
                         $('#totalAlertasContestadasAgente').val(response['totalAlertasXAgente']);
                         $('#promAlertasContestadasAgente').val(response['promedioAlertasContestadasXAgente']);
                         $('#promAlertasTotalContestadasAgente').val(response['promedioAlertasTotalesXAgente']);
+
+                        var sp = response['sp'];
+                        console.log('SP: '+sp);
 
                         
                         var len = 0;
@@ -499,8 +567,28 @@
                             var nombreAgente = response['alertas'][i].NombreAgente;
                             var gestion = response['alertas'][i].Gestion;
                             var motivoAlerta = response['alertas'][i].MotivoAlerta;
+
+                            //var idSubUsuario = response['alertas'][i].idSubUsuario;
+                            var idSubUsuario = $('#idSubUsuario').val();
+
+                           
                             
-                            $('#tablaAlertas > tbody:last-child').append('<tr><td>'+nombreCliente+'</td><td>'+vid+'</td><td>'+codSysHunter+'</td><td>'+alias+'</td><td>'+producto+'</td><td>'+dispositivo+'</td><td>'+alerta+'</td><td>'+estadoAlarma+'</td><td>'+fechaOcurrencia+'</td><td>'+fechaGestion+'</td><td>'+nombreAgente+'</td><td>'+gestion+'</td><td>'+motivoAlerta+'</td></tr>');
+                            if(idSubUsuario=="0")
+                            {
+                                htmlvid_csh = '<td>'+vid+'</td><td>'+codSysHunter+'</td>';
+                                htmlproducto_dispositivo = '<td>'+producto+'</td><td>'+dispositivo+'</td>'; 
+                               
+                            }else
+                            {
+                               
+
+                                vid = '';
+                                codSysHunter = '';
+                                htmlvid_csh = '';
+                                htmlproducto_dispositivo = '';
+                            }
+                            
+                            $('#tablaAlertas > tbody:last-child').append('<tr><td>'+nombreCliente+'</td>'+htmlvid_csh+'<td>'+alias+'</td>'+htmlproducto_dispositivo+'<td>'+alerta+'</td><td>'+estadoAlarma+'</td><td>'+fechaOcurrencia+'</td><td>'+fechaGestion+'</td><td>'+nombreAgente+'</td><td>'+gestion+'</td><td>'+motivoAlerta+'</td></tr>');
 
 
                         }
@@ -578,6 +666,7 @@ $(document).ready(function(){
             // Set selection
             $('#unidadBuscar').val(ui.item.label); // display the selected text
             $('#idActivo').val(ui.item.value); // save selected id to input
+            console.log('IdActivo: '+ui.item.value);
             
             return false;
         }

@@ -5,6 +5,7 @@ namespace XAdmin\Http\Middleware;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 use Closure;
 
@@ -22,9 +23,12 @@ class EsPostVenta
 
 
         try {
-            $usuario = Auth::user()->Usuario;
-            $clave = Auth::user()->Clave;
+            //$usuario = Auth::user()->Usuario;
+            //$clave = Auth::user()->Clave;
+            $usuario = Auth::guard('web')->user()->Usuario;
+            $clave = Auth::guard('web')->user()->Clave;
         } catch (\Throwable $th) {
+            Log::info('Mariolog error '.$th->getMessage());
             return redirect('/login');
         }
         $aplicacion = 7; //IdAplicación en tabla Aplicacion =   7 PX Admin
@@ -33,10 +37,43 @@ class EsPostVenta
         $ejecucion = 0;
         $mensaje = "";
 
-        if(session('idApp')==7)
+        $perfiles = session('perfil');
+        $arregloPerfiles = explode(";",$perfiles);
+        $tienePerfil = false;
+
+        foreach ($arregloPerfiles as $perfil) {
+            //if($perfil=="1000"||$perfil=="6")
+            if($perfil=="1004"||$perfil=="1005")
+                $tienePerfil = true;
+        }
+
+        //if(session('idApp')==7)
+        if($tienePerfil)
+        {
+            Log::info('Mariolog tiene perfil EsPostVenta');
+            return $next($request);
+        }
+        else
+        {   
+            Log::info('Mariolog No tiene perfil EsPostVenta'); 
+            return redirect('monitors')->withErrors('Acceso no autorizado.');
+        }
+
+
+        /*
+        
+        $perfiles = session('perfil');
+        $arregloPerfiles = explode(";",$perfiles);
+        $tienePerfil = false;
+        
+        foreach ($arregloPerfiles as $perfil) {
+            if($perfil=="1003")  // ERWIN DEBE DEFINIR
+                $tienePerfil = true;
+        }
+        if($tienePerfil)
             return $next($request);
         else
-            return redirect('monitors');
+            return redirect('/postventa/consultaGeneral/')->withErrors('Acceso no autorizado.'); */
 
        
 

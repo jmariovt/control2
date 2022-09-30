@@ -7,23 +7,58 @@
     <div class="row justify-content-center">
         <div class="col-md-12">
             <div class="card">-->
+			<?php
+				$idUsuario = session('idUsuario');
+				$idSubUsuario = session('idSubUsuario');
+				$idCategoria = session('idCategoria');
+
+				if($idSubUsuario=="0")
+				{
+					$styleColumna = "display: none;";
+				}else
+				{
+					if($idCategoria=="9") //Es Supervisor
+					{
+						$styleColumna = "text-align: center;";
+					}else{
+						$styleColumna = "display: none;";
+					}
+				}
+
+				
+			?>
+			<input type="hidden" class="form-control form-control-sm" id="idUsuario" name="idUsuario" value="{{$idUsuario}}">
+			<input type="hidden" class="form-control form-control-sm" id="idSubUsuario" name="idSubUsuario" value="{{$idSubUsuario}}">
+			<input type="hidden" class="form-control form-control-sm" id="idCategoria" name="idCategoria" value="{{$idCategoria}}">
+								
 			<table class="table table-sm ">
 	    						<tbody>
 				                    <tr>
 				                        
 				                        <td>
 				                        	<a href="/xadmin/alerts" class="btn btn-primary btn-sm" target="_blank">Alertas</a>
-				                        
-				                        	<!--<button type="button" class="btn btn-primary btn-sm">Ver monitoreos</button>-->
-				                        
+											@if($idSubUsuario!="0")
+											<a href="/xadmin/alerts/alertasAgrupadasPorVehiculo" class="btn btn-primary btn-sm" target="_blank">Alertas por Vehículos</a>
+											@endif
+											@if (Auth::guard('web')->check())
 				                        	<a href="/xadmin/monitors/controlMonitoreos" class="btn btn-primary btn-sm" target="_blank">Dashboard</a>
+											@endif
+				                        	<!--<button type="button" class="btn btn-primary btn-sm">Ver monitoreos</button>-->
+											<a href="/xadmin/alerts/seguimientoalertas" class="btn btn-primary btn-sm" target="_blank">Seguimiento alertas</a>
+											@if($idSubUsuario!="0")
+											<a href="/xadmin/alerts/seguimientoAlertasAgrupadasPorMonitorista" class="btn btn-primary btn-sm" target="_blank">Reporte Alertas Agrupadas</a>
+											<a href="/xadmin/alerts/reportesKpi" class="btn btn-primary btn-sm" target="_blank">KPI</a>
+											@endif
+				                        	@if (Auth::guard('web')->check())
+				                        		
 				                        
-				                        	<a href="/xadmin/alerts/seguimientoalertas" class="btn btn-primary btn-sm" target="_blank">Seguimiento alertas</a>
+				                        		
 											
-											<a href="/xadmin/alerts/reportegerencial" class="btn btn-primary btn-sm" target="_blank">Reporte Gerencial</a>
+												<a href="/xadmin/alerts/reportegerencial" class="btn btn-primary btn-sm" target="_blank">Reporte Gerencial</a>
+												
 											
-				                        
-				                        	<a href="/xadmin/monitors/clienteMonitoreo" class="btn btn-primary btn-sm" target="_blank">Clientes monitoreo</a>
+												<a href="/xadmin/monitors/clienteMonitoreo" class="btn btn-primary btn-sm" target="_blank">Clientes monitoreo</a>
+											@endif
 				                       
 				                        	<!--<button type="button" class="btn btn-primary btn-sm">Definición rutas</button>-->
 											<!--<a href="/xadmin/monitors/reportes/" class="btn btn-primary btn-sm"  target="_blank" onclick="window.open('/xadmin/monitors/reportes/','newwindow','width=900,height=900'); return false;">Reportes generales</a>-->
@@ -39,7 +74,7 @@
 							<tr>
 								
 								<td  align="left"><b>Monitoreos: </b></td>
-								<td  align="left"><b>Sin eventos asignados: </b></td>
+								<td  align="left"><b>Sin parametrización de alertas: </b></td>
 								<td  align="left"><b>Reportando: </b></td>
 								<td  align="left"><b>No Reportando: </b></td>
 								<td  align="left"><b>Iniciados: </b></td>
@@ -171,6 +206,7 @@
                 				<thead >
 				                    <tr>
 										<th width="6%" style="text-align: center;">Tipo</th>
+										<th width="6%" style="{{$styleColumna}}">Usuario</th>
 										<th width="6%" style="text-align: center;">VID</th>
 										<th width="6%" style="text-align: center;">Reportando</th>
 				                        <th width="6%" style="text-align: center;">CodSysHunter</th>
@@ -180,7 +216,7 @@
 				                        <th width="8%" style="text-align: center;">Desde</th>
 				                        <th width="8%" style="text-align: center;">Hasta</th>
 				                        <th width="3%" style="text-align: center;">Activo</th>
-				                        <th width="16%" style="text-align: center;">Alertas asignadas</th>
+				                        <th width="16%" style="text-align: center;">Alertas parametrizadas</th>
 				                        <th width="8%" style="text-align: center;">P. Acción Actual</th>
 				                        <th width="6%" colspan="4" style="text-align: center;">Acciones</th>
 										<!--<th width="8%">&nbsp;</th>
@@ -197,7 +233,9 @@
 				                	 @foreach($monitors as $monitor)
 				                	 <tr>
 									 	<td style="text-align: center;">{{$monitor->DescripcionTipoMonitoreo}}</td>
-									 	<td style="text-align: center;">{{$monitor->VID}}</td>
+										 <td style="{{$styleColumna}}">{{$monitor->NombreCompleto}}</th>
+										 <td style="text-align: center;">{{$monitor->VID}}</td>
+										
 										 <?php
 											if($monitor->Reportando==1)
 											{

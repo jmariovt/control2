@@ -88,12 +88,13 @@
                                         <div class="row justify-content-center">
                                             
                                             <form class="form-group" method="POST" action="/xadmin/monitors/storeHojaRuta">
-                                            <input class="form-control form-control-sm" type="hidden"  id="txtIdMonitoreo" name="txtIdMonitoreo" value='{{$IdMonitoreo}}'>
-                                            <input class="form-control form-control-sm" type="hidden"  id="txtUsuario" name="txtUsuario" value='{{$Usuario}}'>
-                                            <input class="form-control form-control-sm" type="hidden"  id="txtCliente" name="txtCliente" value='{{$Cliente}}'>
-                                            <input class="form-control form-control-sm" type="hidden"  id="txtTipo" name="txtTipo" value='{{$Tipo}}'>
+                                            <input class="form-control form-control-sm" type="hidden"  id="txtIdMonitoreo" name="txtIdMonitoreo" value='{{$IdMonitoreo ?? "" }}'>
+                                            <input class="form-control form-control-sm" type="hidden"  id="txtUsuario" name="txtUsuario" value='{{$Usuario  ?? "" }}'>
+                                            <input class="form-control form-control-sm" type="hidden"  id="txtCliente" name="txtCliente" value='{{$Cliente  ?? "" }}'>
+                                            <input class="form-control form-control-sm" type="hidden"  id="txtTipo" name="txtTipo" value='{{$Tipo  ?? "" }}'>
                                             <?php
-                                                    if($datosCliente[0]->IdMonitoreo=="")
+                                            try {
+                                                if($datosCliente[0]->IdMonitoreo=="")
                                                     {   $styleButtonExcel = "display: none;";
                                                         $styleDispositivos = "";
                                                         $styleButtonEliminar = "";
@@ -102,6 +103,12 @@
                                                         $styleDispositivos = "display: none;";
                                                         $styleButtonEliminar = "display: none;";
                                                     }
+                                            } catch (\Throwable $th) {
+                                                $styleButtonExcel = "display: none;";
+                                                $styleDispositivos = "display: none;";
+                                                $styleButtonEliminar = "display: none;";
+                                            }
+                                                    
                                                 ?>
                                             <div style="{{$styleButtonExcel}}" >
                                                 <a href="/xadmin/monitors/exportHojaRuta/{{$datosCliente[0]->IdMonitoreo}}/{{$datosCliente[0]->UsuarioMonitoreoControl}}/{{$Cliente}}" class="btn btn-success btn-sm">Exportar Excel</a>
@@ -788,7 +795,7 @@
                                                 
                                                 <div class="modal-footer">
                                                     <a href="/xadmin/monitors/clienteMonitoreo" class="btn btn-secondary">Cancelar</a>
-                                                    <button type="submit" class="btn btn-primary">Grabar y enviar (en prueba)</button>
+                                                    <button type="submit" class="btn btn-primary">Grabar y enviar</button>
                                                 </div>
                                             </form>
                                         </div>

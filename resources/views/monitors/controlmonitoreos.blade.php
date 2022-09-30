@@ -181,6 +181,7 @@
     {
         var CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content');
         var result = "0";
+        var alertasPendientes = 0;
         console.log("idmonitoreo= "+idMonitoreo1);
         activo = -1;
          $.ajax({
@@ -201,6 +202,31 @@
 
                     console.log("Es de tia "+result);
                     console.log("Activo: "+activo); 
+
+                    var estado = 0, estadoReal = 0, fechaInicio = "";
+                    if(response['estado']!=null)
+                    {
+                        console.log(response['estado']);
+                        estado = response['estado'][0].estado;
+                        estadoReal = response['estado'][0].EstadoReal;
+                        fechaInicio = response['estado'][0].FechaHoraInicioReal;
+                        console.log("Estado: "+estado+". EstadoReal: "+estadoReal+". FechaInicio: "+fechaInicio); 
+                        if(estado=="A"&&fechaInicio!=null&&estadoReal==1)
+                        {
+                            console.log("Se va a finalizar monitoreo");
+                        }else
+                        {
+                            console.log("Se va a iniciar monitoreo");
+                        }
+                    }
+                    if(response['caidas']!=null)
+                    {
+                        alertasPendientes = response['caidas'];
+                        console.log("Alertas pendientes: "+alertasPendientes);
+                    }
+
+
+
                     if (result == '1')
                     {
                         console.log("Activo: "+activo); 
@@ -208,15 +234,70 @@
                             crearMonitoreoAutomatico(activo, idMonitoreo1);
                         }
                         if (confirm(" ¿ Realmente desea iniciar o detener el monitoreo ? ")){
-                            controlarMonitoreo(idMonitoreo1);
-                            location.reload();
+                            if(estado=="A"&&fechaInicio!=null&&estadoReal==1)
+                            {
+                                console.log("Se está finalizando monitoreo");
+                                
+                                console.log("Alertas pendientes: "+alertasPendientes);
+                                if(alertasPendientes>=1)
+                                {
+                                    var mensaje = " Monitoreo tiene "+ alertasPendientes + " alerta(s) pendiente(s) por gestionar. ¿ Desea finalizar de todas formas ? ";
+                                    if(confirm(mensaje))
+                                    {
+                                        
+                                        controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                        location.reload();
+                                    }else
+                                    {
+                                        //window.location.replace("alerts");
+                                        //$('<a href="/xadmin/alerts"  ></a>')[0].click();
+                                    }
+                                }else
+                                {
+                                    controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                    location.reload();
+                                }
+                            }else  
+                            {
+                                console.log("Se está inciando el monitoreo");
+                                controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                location.reload();
+                            }
                         }
                         
                     }else
                     {
                         if (confirm(" ¿ Realmente desea iniciar o detener el monitoreo ?")) {
-                            controlarMonitoreo(idMonitoreo1);
-                            location.reload();
+                            if(estado=="A"&&fechaInicio!=null&&estadoReal==1)
+                            {
+                                console.log("Se está finalizando monitoreo");
+                                
+                                console.log("Alertas pendientes: "+alertasPendientes);
+                                if(alertasPendientes>=1)
+                                {
+                                    var mensaje = " Monitoreo tiene "+ alertasPendientes + " alerta(s) pendiente(s) por gestionar. ¿ Desea finalizar de todas formas ? ";
+                                    if(confirm(mensaje))
+                                    {
+                                        controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                        location.reload();
+                                    }else
+                                    {
+                                        //window.location.replace("alerts");
+                                        //$('<a href="/xadmin/alerts" ></a>')[0].click();
+                                    }
+                                }else
+                                {
+                                    controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                    location.reload();
+                                }
+                            }else  
+                            {
+                                console.log("Se está inciando el monitoreo");
+                                controlarMonitoreo(idMonitoreo1,alertasPendientes);
+                                location.reload();
+                            }
+                            //controlarMonitoreo(idMonitoreo1);
+                            //location.reload();
                         } 
                     }
                     
@@ -260,7 +341,7 @@
      }
 
 
-     function controlarMonitoreo(idMonitoreo) {
+     function controlarMonitoreo(idMonitoreo,alertasPendientes) {
         var CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content');
          var result = 0, msg = '';
          console.log("entra a controlar monitoreo");
@@ -270,6 +351,7 @@
              dataType: "json",
              data: {
                 IdMonitoreo : idMonitoreo , 
+                alertasPendientes : alertasPendientes ,
                 _token : CSRF_TOKEN 
                 },
              
@@ -279,6 +361,7 @@
                 if(response['data'] != null)
                 {
                     console.log(response['data'].resultado);
+                    alert(response['data'].resultado);
                 }
              }
              
