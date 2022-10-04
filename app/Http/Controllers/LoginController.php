@@ -8,12 +8,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Http\Request;
 
+use Illuminate\Support\Facades\Log;
+
 class LoginController extends Controller
 {
     public function show()
     {
         return view('auth.login');
     }
+
+   
 
     public function showpv()
     {
@@ -23,7 +27,93 @@ class LoginController extends Controller
     public function authenticate(Request $request)
     {
         $validator = $request->validate([
-            'Usuario'     => 'required',
+            'Usuario'     => 'nullable',
+            //'SubUsuario'     => 'nullable',
+            'Clave'  => 'required|min:4',
+            'Aplicacion' => 'required'
+        ]);
+
+        $idAplicacion = $request->Aplicacion;
+
+        Log::info('Estoy en LoginController');
+        
+        if($request->Usuario)
+        {
+            Log::info('Entré a request->Usuario en LoginController');
+            if (Auth::guard('web')->attempt($validator)) {
+            
+                //return $validator;
+                //return redirect()->route('monitors');
+                $hojaRuta_id = 0;
+                $hojaRuta_nombreCliente = "";
+                $hojaRuta_tipoCliente = "";
+                try {
+                    $usuarioHojaRuta = DB::select('exec spUsuarioHojaRutaConsultarLv ?,?',array($request->Usuario, $request->Clave));    
+                    $hojaRuta_id = $usuarioHojaRuta[0]->ID;
+                    $hojaRuta_nombreCliente = $usuarioHojaRuta[0]->NombreCompleto;
+                    $hojaRuta_tipoCliente = $usuarioHojaRuta[0]->TipoCliente;
+                    Log::info('MarioLogHojaRuta: Guardo datos de Hoja de Ruta de '.$request->Usuario.' Tipo de Cliente: '.$hojaRuta_tipoCliente);
+                } catch (\Throwable $th) {
+                    Log::info('MarioLogHojaRuta: Error al traer datos de Hoja de Ruta de '.$request->Usuario);
+                }
+                
+                session(['hojaRuta_Id' => $hojaRuta_id]);
+                session(['hojaRuta_NombreCliente' => $hojaRuta_nombreCliente]);
+                session(['hojaRuta_TipoCliente' => $hojaRuta_tipoCliente]);
+
+                Log::info('Voy a switch LoginController. Aplicacion: '.$idAplicacion);
+                switch ($idAplicacion) {
+                    case 37:
+                        $ruta = 'monitors';
+                        break;
+                    case 7:
+                        $ruta = 'postVenta';
+                        break;
+                    case 15:
+                        $ruta = 'adminCliente';
+                        return redirect()->route($ruta,['cliente'=>$request->Usuario]);
+                        break;
+                    default:
+                        //$ruta = 'postVenta';
+                        break;  
+                }
+                Log::info('Voy a switch LoginController. Ruta: '.$ruta);
+                return redirect()->route($ruta);//->with('cliente',$request->Usuario);//$request->Usuario);
+
+            }else
+            {
+                Log::info('Error en autorizacion LoginController');
+                return redirect()->back()->withInput()->withErrors('Datos incorrectos para la aplicación seleccionada.');
+            }
+        }/*else if(Auth::guard('subusers')->attempt($validator))
+        {
+            //$request->session()->regenerate();
+            switch ($idAplicacion) {
+                case 37:
+                    $ruta = 'monitors';  
+                    break;
+                
+                default:
+                    $ruta = 'postVenta';
+                    break;
+            }
+
+            return redirect()->route($ruta);
+        }*/else
+        {
+            Log::info('Error en LoginController');
+            return redirect()->back()->withInput()->withErrors('Datos incorrectos para la aplicación seleccionada o debe restablecer su contraseña.');
+        }  
+       
+    }
+
+
+
+
+    /*public function authenticateExt(Request $request)
+    {
+        $validator = $request->validate([
+            'SubUsuario'     => 'required',
             'Clave'  => 'required|min:4',
             'Aplicacion' => 'required'
         ]);
@@ -49,37 +139,9 @@ class LoginController extends Controller
             return redirect()->route($ruta);
 
 
-        }else 
+        }else if(Auth::guard('subusers')->attempt($validator))
         {
-            return redirect()->back()->withInput()->withErrors('Usuario o clave incorrectos para la aplicación seleccionada.');
-        }  // Comentado 06 de agosto de 2021
-
-        /*$usuario = $request->Usuario;
-        $plain = $request->Clave;
-        $idAplicacion = $request->Aplicacion;
-        $ejecucion = 0;
-        $mensaje = "";
-
-        try {
-            $resultado = DB::select('exec spAutenticacionMOBILEDEVICELv ?,?,?',array($usuario,$plain,$idAplicacion));
-        } catch (\Throwable $th) {
-            //throw $th;
-        }
-
-        
-        
-        try {
-            if( $resultado[0]->Ejecucion)
-            {
-                $ejecucion = $resultado[0]->Ejecucion;
-                $mensaje = $resultado[0]->Mensaje;
-            }      
-        } catch (\Throwable $th) {
-            $ejecucion = 1;
-        }
-
-        if($ejecucion)
-        {
+            //$request->session()->regenerate();
             switch ($idAplicacion) {
                 case 37:
                     $ruta = 'monitors';
@@ -91,30 +153,12 @@ class LoginController extends Controller
             }
 
             return redirect()->route($ruta);
-        }else {
+        }else
+        {
             return redirect()->back()->withInput()->withErrors('Usuario o clave incorrectos para la aplicación seleccionada.');
-        }*/
-        
-        
-        
-        
-        
-        /*
-        $user = DB::table('Usuario')->where('Usuario','=', $request->Usuario)->where('Clave', $request->Clave)->first();
-
-        
-
-        if($user) 
-        {
-            //Auth::loginUsingId($user->id);
-            // -- OR -- //
-            Auth::login($user);
-            return redirect()->route('home');
-        } else 
-        {
-            return redirect()->back()->withInput();
-        }*/
-    }
+        }  
+       
+    }*/
 
     public function logout()
     {

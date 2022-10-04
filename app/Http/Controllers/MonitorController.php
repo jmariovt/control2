@@ -2844,7 +2844,7 @@ class MonitorController extends Controller
         try
         {
 
-            $tipoCliente = "I";//session('hojaRuta_TipoCliente'); // "I"
+            $tipoCliente = session('hojaRuta_TipoCliente'); // "I"
             
             $usuario = session('usuario');
             $nombreArchivo = "";
